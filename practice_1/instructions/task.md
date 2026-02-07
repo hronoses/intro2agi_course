@@ -31,11 +31,10 @@ $R \in \{0, 1\}^S$ - спостереження агента, яке залеж�
 
 
 ## Завдання
-0. Переглянути відео запис з практики (якщо були відсутні, за посиланням https://drive.google.com/drive/folders/1zFXF8JZ2wgVt-KZ-h-0FpIQqhIO0FR4t?usp=drive_link)
 1. Склонувати репозиторій з кодом практики та створити свою гілку для роботи. 
 
 ```bash
-git clone <repository_url>
+git clone https://github.com/hronoses/intro2agi_course
 cd intro2agi_course
 git checkout -b your_branch_name
 ```
