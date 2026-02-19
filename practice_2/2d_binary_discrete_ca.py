@@ -23,56 +23,34 @@ class World:
 
     def step(self):
         """Advance the world by one time step using Conway's Game of Life rules."""
-        # Count live neighbours for every cell using toroidal (wrap-around) boundary
-        # np.roll shifts the array along an axis, giving us all 8 neighbours efficiently
-        neighbours = (
-            np.roll(np.roll(self.state, -1, axis=0), -1, axis=1) +
-            np.roll(self.state, -1, axis=0) +
-            np.roll(np.roll(self.state, -1, axis=0),  1, axis=1) +
-            np.roll(self.state,  1, axis=1) +
-            np.roll(np.roll(self.state,  1, axis=0), -1, axis=1) +
-            np.roll(self.state,  1, axis=0) +
-            np.roll(np.roll(self.state,  1, axis=0),  1, axis=1) +
-            np.roll(self.state, -1, axis=1)
-        )
-        # Birth: dead cell with exactly 3 live neighbours
-        # Survival: live cell with 2 or 3 live neighbours
-        self.state = np.where(
-            (self.state == 1) & ((neighbours == 2) | (neighbours == 3)), 1,
-            np.where((self.state == 0) & (neighbours == 3), 1, 0)
-        ).astype(np.int32)
+        # Pad once with wrap-around, then sum all 8 neighbours via slicing.
+        # This avoids 16 temporary arrays that np.roll would create.
+        p = np.pad(self.state, 1, mode='wrap')
+        neighbours = (p[:-2, :-2] + p[:-2, 1:-1] + p[:-2, 2:] +
+                      p[1:-1, :-2]               + p[1:-1, 2:] +
+                      p[2:,  :-2]  + p[2:,  1:-1]  + p[2:,  2:])
+        survive = (self.state == 1) & ((neighbours == 2) | (neighbours == 3))
+        born    = (self.state == 0) &  (neighbours == 3)
+        self.state = (survive | born).view(np.uint8)
         self.time_step += 1
 
     def visualize_opencv(self, agent_pos=None, cell_size=30):
-        """Create an OpenCV image of the world state."""
-        img = np.zeros((self.height * cell_size, self.width * cell_size, 3), dtype=np.uint8)
-        
-        # We can optimize this by drawing on the whole image at once if possible, 
-        # but looping is clearer for this scale.
-        for y in range(self.height):
-            for x in range(self.width):
-                x_start = x * cell_size
-                x_end = (x + 1) * cell_size
-                y_start = y * cell_size
-                y_end = (y + 1) * cell_size
-                
-                if agent_pos is not None and x == agent_pos[0] and y == agent_pos[1]:
-                    # Agent position - red
-                    color = [0, 0, 255]
-                elif self.state[y, x] == 1:
-                    # Active cell - white
-                    color = [255, 255, 255]
-                else:
-                    # Inactive cell - black
-                    color = [0, 0, 0]
-                
-                # Fill cell
-                img[y_start:y_end, x_start:x_end] = color
-                
-                # Draw grid lines (bottom and right edges)
-                cv2.line(img, (x_start, y_end-1), (x_end-1, y_end-1), (50, 50, 50), 1)
-                cv2.line(img, (x_end-1, y_start), (x_end-1, y_end-1), (50, 50, 50), 1)
-        
+        """Create an OpenCV image of the world state (fully vectorised)."""
+        # Build a (height x width x 3) colour map in one shot
+        colour_map = np.zeros((self.height, self.width, 3), dtype=np.uint8)
+        colour_map[self.state == 1] = (255, 255, 255)   # live  -> white
+        if agent_pos is not None:
+            colour_map[agent_pos[1], agent_pos[0]] = (0, 0, 255)  # agent -> red
+
+        # Scale up to pixel resolution via np.repeat (no Python loops)
+        img = np.repeat(np.repeat(colour_map, cell_size, axis=0), cell_size, axis=1)
+
+        # Draw grid lines with single array writes
+        for i in range(self.width):
+            img[:, i * cell_size] = (50, 50, 50)
+        for i in range(self.height):
+            img[i * cell_size, :] = (50, 50, 50)
+
         return img
 
 
@@ -88,51 +66,29 @@ class Agent:
     
     def perceive(self):
         """Get local perception of the world around agent's position."""
-        # Create a grid for perception
-        size = 2 * self.perception_radius + 1
-        perception = np.zeros((size, size), dtype=int)
-        
-        for dy in range(-self.perception_radius, self.perception_radius + 1):
-            for dx in range(-self.perception_radius, self.perception_radius + 1):
-                # Calculate world coordinates with wrapping
-                world_x = (self.position[0] + dx) % self.world.width
-                world_y = (self.position[1] + dy) % self.world.height
-                
-                # Map to local perception grid coordinates
-                local_y = dy + self.perception_radius
-                local_x = dx + self.perception_radius
-                
-                perception[local_y, local_x] = self.world.get_value(world_x, world_y)
-                
-        return perception
+        r = self.perception_radius
+        x, y = self.position
+        # Build wrapped index arrays and extract the patch in one numpy call
+        ys = np.arange(y - r, y + r + 1) % self.world.height
+        xs = np.arange(x - r, x + r + 1) % self.world.width
+        return self.world.state[np.ix_(ys, xs)]
 
     def get_sensory_input_opencv(self, cell_size=30):
-        """Get OpenCV visualization of sensory input."""
+        """Get OpenCV visualization of sensory input (fully vectorised)."""
         perception = self.perceive()
         size = perception.shape[0]
-        img = np.zeros((size * cell_size, size * cell_size, 3), dtype=np.uint8)
-        
-        for y in range(size):
-            for x in range(size):
-                x_start = x * cell_size
-                x_end = (x + 1) * cell_size
-                y_start = y * cell_size
-                y_end = (y + 1) * cell_size
-                
-                # Check if this is the agent's center position
-                if x == self.perception_radius and y == self.perception_radius:
-                    color = [0, 0, 255]  # Agent - Red
-                elif perception[y, x] == 1:
-                    color = [255, 255, 255]  # Active - White
-                else:
-                    color = [50, 50, 50]  # Inactive - Dark Gray
-                
-                img[y_start:y_end, x_start:x_end] = color
-                
-                # Draw grid lines
-                cv2.line(img, (x_start, y_end-1), (x_end-1, y_end-1), (100, 100, 100), 1)
-                cv2.line(img, (x_end-1, y_start), (x_end-1, y_end-1), (100, 100, 100), 1)
-                
+        r = self.perception_radius
+
+        colour_map = np.full((size, size, 3), (50, 50, 50), dtype=np.uint8)  # default dark
+        colour_map[perception == 1] = (255, 255, 255)  # live  -> white
+        colour_map[r, r] = (0, 0, 255)                 # agent -> red
+
+        img = np.repeat(np.repeat(colour_map, cell_size, axis=0), cell_size, axis=1)
+
+        for i in range(size):
+            img[:, i * cell_size] = (100, 100, 100)
+            img[i * cell_size, :] = (100, 100, 100)
+
         return img
 
     def move(self, direction):
@@ -165,8 +121,8 @@ class Agent:
 def main():
     """Main simulation loop."""
     # Initialize world and agent
-    world = World(width=20, height=15)
-    agent = Agent(world, start_pos=[5, 5], perception_radius=2)
+    world = World(width=100, height=100)
+    agent = Agent(world, start_pos=[5, 5], perception_radius=23)
     
     # Create OpenCV windows
     cv2.namedWindow('2D World State', cv2.WINDOW_AUTOSIZE)
@@ -188,6 +144,13 @@ def main():
     print("  'z'       - Kill cell at agent position (set to 0)")
     print("  'x'       - Revive cell at agent position (set to 1)")
     print("=" * 50)
+
+    # Warm-up: run GoL steps without rendering
+    WARMUP_STEPS = 400
+    print(f"Running {WARMUP_STEPS} warm-up steps...")
+    for _ in range(WARMUP_STEPS):
+        world.step()
+    print(f"Done. Starting visualization at step {world.time_step}.")
 
     running = True
     paused = False
@@ -221,7 +184,7 @@ def main():
         cv2.imshow('Sensory Input', sensory_img)
 
         # Handle input
-        key = cv2.waitKey(50) & 0xFF
+        key = cv2.waitKey(10) & 0xFF
 
         if key == ord('q') or key == 27:
             running = False
