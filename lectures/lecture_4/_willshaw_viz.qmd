@@ -1,0 +1,286 @@
+```{=html}
+<div id="wlsh">
+<style>
+#wlsh {
+  font-family: 'Segoe UI', sans-serif;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 14px; padding: 8px 20px;
+}
+#wlsh .wl-tabs {
+  display: flex; gap: 0;
+  border: 2px solid #ccc; border-radius: 8px; overflow: hidden;
+}
+#wlsh .wl-tab {
+  padding: 7px 28px; font-size: 0.85em; font-weight: 600;
+  cursor: pointer; background: #f5f5f5; color: #888;
+  border: none; transition: background 0.2s, color 0.2s;
+}
+#wlsh .wl-tab.active-tab  { background: #1565C0; color: #fff; }
+#wlsh .wl-tab:not(:last-child) { border-right: 2px solid #ccc; }
+#wlsh .wl-layout { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+#wlsh .wl-top-row     { display: flex; align-items: flex-end; gap: 3px; }
+#wlsh .wl-spacer-left { width: 54px; flex-shrink: 0; }
+#wlsh .wl-input-row   { display: flex; gap: 3px; }
+#wlsh .wl-mid-row     { display: flex; align-items: flex-start; gap: 3px; }
+#wlsh .wl-ylabel      { width: 54px; display: flex; flex-direction: column; gap: 3px; }
+#wlsh .wl-matrix      { display: grid; gap: 3px; }
+#wlsh .wl-output-col  { display: flex; flex-direction: column; gap: 3px; margin-left: 6px; }
+#wlsh .wl-sum-col     { display: flex; flex-direction: column; gap: 3px; margin-left: 4px; }
+#wlsh .wl-neuron {
+  width: 44px; height: 44px; border-radius: 6px;
+  border: 2px solid #bbb; background: #f0f0f0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.6em; font-weight: 700; color: #666;
+  transition: background 0.3s, border-color 0.3s, color 0.3s;
+}
+#wlsh .wl-neuron.active        { background: #2E7D32; border-color: #1B5E20; color: #fff; }
+#wlsh .wl-neuron.cue           { background: #F9A825; border-color: #F57F17; color: #fff; }
+#wlsh .wl-neuron.recalled-ok   { background: #1565C0; border-color: #0D47A1; color: #fff; }
+#wlsh .wl-neuron.recalled-miss { background: #880E4F; border-color: #4A148C; color: #fff; }
+#wlsh .wl-neuron.recalled-fp   { background: #E64A19; border-color: #BF360C; color: #fff; }
+#wlsh .wl-cell {
+  width: 44px; height: 44px; border-radius: 3px;
+  border: 1.5px solid #ddd; background: #f7f7f7;
+  transition: background 0.3s, border-color 0.3s;
+}
+#wlsh .wl-cell.stored              { background: #BBDEFB; border-color: #1565C0; }
+#wlsh .wl-cell.new-write           { background: #FF7043; border-color: #BF360C; }
+#wlsh .wl-cell.cue-col             { background: #FFF9C4; border-color: #F9A825; }
+#wlsh .wl-cell.cue-col.stored      { background: #FFD54F; border-color: #E65100; }
+#wlsh .wl-sum {
+  width: 54px; height: 44px; border-radius: 4px;
+  border: 1.5px dashed #bbb; background: #fafafa;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.65em; font-weight: 700; color: #bbb;
+  transition: background 0.3s, color 0.3s, border-color 0.3s;
+}
+#wlsh .wl-sum.fires   { background: #E8F5E9; color: #1B5E20; border-color: #2E7D32; }
+#wlsh .wl-sum.no-fire { background: #fafafa; color: #ccc;     border-color: #eee; }
+#wlsh .wl-axis-label  { font-size: 0.6em; color: #aaa; font-style: italic; text-align: center; }
+#wlsh .wl-row-label {
+  width: 54px; height: 44px;
+  display: flex; align-items: center; justify-content: flex-end;
+  padding-right: 4px; font-size: 0.6em; color: #888;
+}
+#wlsh .wl-controls {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center;
+}
+#wlsh .wl-btn {
+  padding: 7px 18px; font-size: 0.8em; font-weight: 600;
+  border: 2px solid #1565C0; border-radius: 6px;
+  background: #fff; color: #1565C0;
+  cursor: pointer; transition: background 0.2s, color 0.2s;
+}
+#wlsh .wl-btn:hover         { background: #1565C0; color: #fff; }
+#wlsh .wl-btn.sel           { background: #1565C0; color: #fff; }
+#wlsh .wl-btn:disabled      { border-color: #ccc; color: #ccc; cursor: default; }
+#wlsh .wl-btn:disabled:hover{ background: #fff; color: #ccc; }
+#wlsh .wl-cue-toggle { display: flex; align-items: center; gap: 6px; font-size: 0.78em; color: #555; cursor: pointer; }
+#wlsh .wl-status { font-size: 0.78em; color: #555; min-width: 200px; text-align: center; }
+#wlsh .wl-theta {
+  font-size: 0.78em; color: #555;
+  background: #f0f4ff; border: 1px solid #90CAF9;
+  border-radius: 4px; padding: 3px 10px;
+}
+#wlsh .wl-legend { display: flex; gap: 14px; font-size: 0.65em; color: #555; flex-wrap: wrap; justify-content: center; }
+#wlsh .wl-legend-item { display: flex; align-items: center; gap: 4px; }
+#wlsh .wl-legend-box  { width: 16px; height: 16px; border-radius: 3px; border: 1.5px solid #aaa; }
+</style>
+<script>
+(function() {
+  const N = 8, M = 8;
+  const PATTERNS = [
+    { x: [0, 3, 6],    y: [1, 4, 7], label: "Патерн 1" },
+    { x: [1, 4, 7],    y: [0, 3, 5], label: "Патерн 2" },
+    { x: [2, 5],       y: [2, 6, 7], label: "Патерн 3" },
+    { x: [0, 2, 6, 7], y: [1, 3, 5], label: "Патерн 4" },
+  ];
+  let W = [], newCells = new Set(), step = 0;
+  let mode = 'learn', partialCue = true, recallPatternIdx = null;
+
+  function initW() { W = Array.from({ length: M }, () => Array(N).fill(0)); }
+  function getCue(p) {
+    return (partialCue && p.x.length > 1) ? p.x.slice(0, p.x.length - 1) : p.x.slice();
+  }
+  function computeRecall(cueX) {
+    const theta = cueX.length;
+    const sums = Array(M).fill(0);
+    cueX.forEach(j => { for (let i = 0; i < M; i++) sums[i] += W[i][j]; });
+    return { sums, fired: sums.map(s => s >= theta), theta };
+  }
+  function el(tag, cls, html) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (html !== undefined) e.innerHTML = html;
+    return e;
+  }
+
+  function buildGrid(root) {
+    const layout = el('div', 'wl-layout');
+    // top: input neurons
+    const topRow = el('div', 'wl-top-row');
+    topRow.appendChild(el('div', 'wl-spacer-left'));
+    const inputRow = el('div', 'wl-input-row');
+    for (let j = 0; j < N; j++) {
+      const n = el('div', 'wl-neuron'); n.id = `wl-x-${j}`; n.textContent = `x${j}`; inputRow.appendChild(n);
+    }
+    topRow.appendChild(inputRow); layout.appendChild(topRow);
+    // x label
+    const xR = el('div'); xR.style.cssText = 'display:flex;gap:3px;';
+    xR.appendChild(el('div','wl-spacer-left'));
+    const xL = el('div','wl-axis-label'); xL.style.width = `${N*47}px`; xL.textContent = '← вхідний вектор x →';
+    xR.appendChild(xL); layout.appendChild(xR);
+    // mid row
+    const midRow = el('div','wl-mid-row');
+    const yLbl = el('div','wl-ylabel');
+    for (let i = 0; i < M; i++) { const l = el('div','wl-row-label'); l.textContent = `y${i}`; yLbl.appendChild(l); }
+    midRow.appendChild(yLbl);
+    const matrix = el('div','wl-matrix'); matrix.style.gridTemplateColumns = `repeat(${N},44px)`; matrix.id = 'wl-matrix';
+    for (let i = 0; i < M; i++) for (let j = 0; j < N; j++) { const c = el('div','wl-cell'); c.id = `wl-w-${i}-${j}`; matrix.appendChild(c); }
+    midRow.appendChild(matrix);
+    const outCol = el('div','wl-output-col');
+    for (let i = 0; i < M; i++) { const n = el('div','wl-neuron'); n.id = `wl-y-${i}`; n.textContent = `y${i}`; outCol.appendChild(n); }
+    midRow.appendChild(outCol);
+    const sumCol = el('div','wl-sum-col'); sumCol.id = 'wl-sum-col'; sumCol.style.display = 'none';
+    for (let i = 0; i < M; i++) { const s = el('div','wl-sum'); s.id = `wl-sum-${i}`; s.textContent = '–'; sumCol.appendChild(s); }
+    midRow.appendChild(sumCol);
+    const yAx = el('div'); yAx.style.cssText = 'display:flex;align-items:center;margin-left:6px;';
+    const yAxL = el('div','wl-axis-label'); yAxL.style.cssText = 'writing-mode:vertical-rl;transform:rotate(180deg);'; yAxL.textContent = '← вихідний вектор y →';
+    yAx.appendChild(yAxL); midRow.appendChild(yAx);
+    layout.appendChild(midRow);
+    // W label
+    const wR = el('div'); wR.style.cssText = 'display:flex;gap:3px;'; wR.appendChild(el('div','wl-spacer-left'));
+    const wL = el('div','wl-axis-label'); wL.style.width = `${N*47}px`; wL.textContent = 'матриця ваг W (M × N)';
+    wR.appendChild(wL); layout.appendChild(wR);
+    root.appendChild(layout);
+  }
+
+  function buildControls(root) {
+    // learn
+    const lc = el('div','wl-controls'); lc.id = 'wl-learn-ctrl';
+    const lb = el('button','wl-btn'); lb.id = 'wl-learn-btn'; lb.textContent = `▶ Навчити ${PATTERNS[0].label}`; lb.onclick = learnNext;
+    lc.appendChild(lb);
+    const rb = el('button','wl-btn'); rb.textContent = '↺ Скинути'; rb.onclick = reset; lc.appendChild(rb);
+    const st = el('div','wl-status'); st.id = 'wl-status'; st.textContent = 'Натисніть, щоб навчити перший патерн'; lc.appendChild(st);
+    root.appendChild(lc);
+    // recall
+    const rc = el('div','wl-controls'); rc.id = 'wl-recall-ctrl'; rc.style.display = 'none';
+    const pBtns = el('div'); pBtns.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;justify-content:center;';
+    PATTERNS.forEach((p, idx) => {
+      const b = el('button','wl-btn'); b.id = `wl-rcl-${idx}`; b.textContent = `🔍 ${p.label}`; b.disabled = true; b.onclick = () => showRecall(idx); pBtns.appendChild(b);
+    });
+    rc.appendChild(pBtns);
+    const cueRow = el('div'); cueRow.style.cssText = 'display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center;';
+    const cueToggle = el('label','wl-cue-toggle');
+    const cb = el('input'); cb.type = 'checkbox'; cb.id = 'wl-partial-cb'; cb.checked = true;
+    cb.onchange = () => { partialCue = cb.checked; if (recallPatternIdx !== null) showRecall(recallPatternIdx); };
+    cueToggle.appendChild(cb); cueToggle.appendChild(document.createTextNode(' неповний ключ (−1 біт)'));
+    cueRow.appendChild(cueToggle);
+    const tl = el('div','wl-theta'); tl.id = 'wl-theta'; tl.textContent = 'θ = ?'; cueRow.appendChild(tl);
+    const rs = el('div','wl-status'); rs.id = 'wl-recall-status'; rs.textContent = 'Оберіть патерн для видобування'; cueRow.appendChild(rs);
+    rc.appendChild(cueRow);
+    root.appendChild(rc);
+  }
+
+  function buildLegends(root) {
+    const ll = el('div','wl-legend'); ll.id = 'wl-learn-leg';
+    [['#f7f7f7','#ddd','w = 0'],['#FF7043','#BF360C','щойно записано'],['#BBDEFB','#1565C0','w = 1 (збережено)'],['#2E7D32','#1B5E20','активний нейрон']].forEach(([bg,bd,lbl])=>{
+      const it = el('div','wl-legend-item'); const bx = el('div','wl-legend-box'); bx.style.background = bg; bx.style.borderColor = bd; it.appendChild(bx); it.appendChild(document.createTextNode(lbl)); ll.appendChild(it);
+    }); root.appendChild(ll);
+    const rl = el('div','wl-legend'); rl.id = 'wl-recall-leg'; rl.style.display = 'none';
+    [['#FFD54F','#E65100','активна колонка (w=1)'],['#FFF9C4','#F9A825','активна колонка (w=0)'],['#F9A825','#F57F17','ключ x (cue)'],['#1565C0','#0D47A1','вірно відновлено'],['#880E4F','#4A148C','пропущено (miss)'],['#E64A19','#BF360C','хибне спрацювання']].forEach(([bg,bd,lbl])=>{
+      const it = el('div','wl-legend-item'); const bx = el('div','wl-legend-box'); bx.style.background = bg; bx.style.borderColor = bd; it.appendChild(bx); it.appendChild(document.createTextNode(lbl)); rl.appendChild(it);
+    }); root.appendChild(rl);
+  }
+
+  function renderMatrix(cueSet) {
+    for (let i = 0; i < M; i++) for (let j = 0; j < N; j++) {
+      const cell = document.getElementById(`wl-w-${i}-${j}`);
+      let cls = 'wl-cell';
+      if (newCells.has(i*N+j))  cls += ' new-write';
+      else if (W[i][j] === 1)   cls += ' stored';
+      if (cueSet && cueSet.has(j)) cls += ' cue-col';
+      cell.className = cls;
+    }
+  }
+  function clearNeurons() {
+    for (let j = 0; j < N; j++) document.getElementById(`wl-x-${j}`).className = 'wl-neuron';
+    for (let i = 0; i < M; i++) document.getElementById(`wl-y-${i}`).className = 'wl-neuron';
+  }
+  function clearSums() {
+    for (let i = 0; i < M; i++) { const s = document.getElementById(`wl-sum-${i}`); s.textContent = '–'; s.className = 'wl-sum'; }
+  }
+
+  function learnNext() {
+    if (step >= PATTERNS.length) return;
+    const p = PATTERNS[step]; newCells.clear();
+    p.x.forEach(j => p.y.forEach(i => { if (W[i][j] === 0) { W[i][j] = 1; newCells.add(i*N+j); } }));
+    clearNeurons();
+    p.x.forEach(j => document.getElementById(`wl-x-${j}`).classList.add('active'));
+    p.y.forEach(i => document.getElementById(`wl-y-${i}`).classList.add('active'));
+    renderMatrix(null);
+    const added = newCells.size;
+    document.getElementById('wl-status').textContent = `${p.label} збережено (+${added} ваг)`;
+    const rb = document.getElementById(`wl-rcl-${step}`); if (rb) rb.disabled = false;
+    step++;
+    setTimeout(() => { newCells.clear(); renderMatrix(null); }, 1100);
+    const lb = document.getElementById('wl-learn-btn');
+    if (step < PATTERNS.length) { lb.textContent = `▶ Навчити ${PATTERNS[step].label}`; }
+    else { lb.disabled = true; lb.textContent = '✓ Всі патерни збережено'; document.getElementById('wl-status').textContent = 'Перейдіть до вкладки "Видобування"'; }
+  }
+
+  function showRecall(idx) {
+    recallPatternIdx = idx;
+    const p = PATTERNS[idx]; const cue = getCue(p); const cueSet = new Set(cue);
+    const { sums, fired, theta } = computeRecall(cue); const targetSet = new Set(p.y);
+    renderMatrix(cueSet);
+    for (let j = 0; j < N; j++) document.getElementById(`wl-x-${j}`).className = 'wl-neuron' + (cueSet.has(j) ? ' cue' : '');
+    document.getElementById('wl-sum-col').style.display = 'flex';
+    for (let i = 0; i < M; i++) {
+      const yn = document.getElementById(`wl-y-${i}`); const sn = document.getElementById(`wl-sum-${i}`);
+      sn.textContent = `${sums[i]}/${theta}`; sn.className = 'wl-sum ' + (fired[i] ? 'fires' : 'no-fire');
+      const ok = fired[i] && targetSet.has(i), miss = !fired[i] && targetSet.has(i), fp = fired[i] && !targetSet.has(i);
+      yn.className = 'wl-neuron' + (ok ? ' recalled-ok' : miss ? ' recalled-miss' : fp ? ' recalled-fp' : '');
+    }
+    document.getElementById('wl-theta').textContent = `θ = ${theta}`;
+    const misses = p.y.filter(i => !fired[i]).length, fps = fired.filter((f,i) => f && !targetSet.has(i)).length;
+    document.getElementById('wl-recall-status').textContent = (misses === 0 && fps === 0)
+      ? `✓ Ідеальне відновлення ${p.label}` : `${p.label}: пропущено ${misses}, хибних ${fps}`;
+    PATTERNS.forEach((_,i) => { const b = document.getElementById(`wl-rcl-${i}`); if (b) b.classList.toggle('sel', i===idx); });
+  }
+
+  function reset() {
+    initW(); newCells.clear(); step = 0; recallPatternIdx = null;
+    clearNeurons(); clearSums(); renderMatrix(null);
+    document.getElementById('wl-sum-col').style.display = 'none';
+    document.getElementById('wl-status').textContent = 'Натисніть, щоб навчити перший патерн';
+    document.getElementById('wl-recall-status').textContent = 'Оберіть патерн для видобування';
+    document.getElementById('wl-theta').textContent = 'θ = ?';
+    const lb = document.getElementById('wl-learn-btn'); lb.disabled = false; lb.textContent = `▶ Навчити ${PATTERNS[0].label}`;
+    PATTERNS.forEach((_,i) => { const b = document.getElementById(`wl-rcl-${i}`); if (b) { b.disabled = true; b.classList.remove('sel'); } });
+    setMode('learn');
+  }
+
+  function setMode(m) {
+    mode = m; const isLearn = m === 'learn';
+    document.getElementById('wl-learn-ctrl').style.display  = isLearn ? 'flex'  : 'none';
+    document.getElementById('wl-recall-ctrl').style.display = isLearn ? 'none'  : 'flex';
+    document.getElementById('wl-learn-leg').style.display   = isLearn ? 'flex'  : 'none';
+    document.getElementById('wl-recall-leg').style.display  = isLearn ? 'none'  : 'flex';
+    document.getElementById('wl-tab-learn').classList.toggle('active-tab',  isLearn);
+    document.getElementById('wl-tab-recall').classList.toggle('active-tab', !isLearn);
+    if (isLearn) { document.getElementById('wl-sum-col').style.display = 'none'; clearNeurons(); clearSums(); renderMatrix(null); }
+    else if (recallPatternIdx !== null) showRecall(recallPatternIdx);
+  }
+
+  initW();
+  const root = document.getElementById('wlsh');
+  const tabs = el('div','wl-tabs');
+  const tL = el('button','wl-tab active-tab','📖 Навчання');  tL.id = 'wl-tab-learn';  tL.onclick = () => setMode('learn');
+  const tR = el('button','wl-tab','🔍 Видобування'); tR.id = 'wl-tab-recall'; tR.onclick = () => setMode('recall');
+  tabs.appendChild(tL); tabs.appendChild(tR); root.appendChild(tabs);
+  buildGrid(root); buildControls(root); buildLegends(root); renderMatrix(null);
+})();
+</script>
+</div>
+```

@@ -1,0 +1,252 @@
+```{=html}
+<div id="hpf">
+<style>
+#hpf{font-family:'Segoe UI',sans-serif;display:flex;flex-direction:column;align-items:center;gap:12px;padding:8px 20px;}
+#hpf .hp-tabs{display:flex;gap:0;border:2px solid #ccc;border-radius:8px;overflow:hidden;}
+#hpf .hp-tab{padding:7px 28px;font-size:.85em;font-weight:600;cursor:pointer;background:#f5f5f5;color:#888;border:none;transition:background .2s,color .2s;}
+#hpf .hp-tab.active-tab{background:#1565C0;color:#fff;}
+#hpf .hp-tab:not(:last-child){border-right:2px solid #ccc;}
+#hpf .hp-body{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;justify-content:center;}
+#hpf .hp-col{display:flex;flex-direction:column;align-items:center;gap:8px;}
+#hpf .hp-col-title{font-size:.7em;color:#888;font-style:italic;text-align:center;}
+#hpf .hp-grid{display:grid;gap:2px;cursor:pointer;}
+#hpf .hp-cell{border-radius:2px;transition:background .25s;}
+#hpf .hp-pat-wrap{display:flex;flex-direction:column;gap:6px;}
+#hpf .hp-pat-card{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;border-radius:6px;border:2px solid #ddd;cursor:pointer;transition:border-color .2s,box-shadow .2s;}
+#hpf .hp-pat-card.stored{border-color:#2E7D32;box-shadow:0 0 0 2px #C8E6C9;}
+#hpf .hp-pat-card.active-pat{border-color:#1565C0;box-shadow:0 0 0 2px #BBDEFB;}
+#hpf .hp-pat-label{font-size:.6em;font-weight:600;color:#555;}
+#hpf canvas{border-radius:4px;border:1.5px solid #ddd;}
+#hpf .hp-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+#hpf .hp-btn{padding:7px 16px;font-size:.78em;font-weight:600;border:2px solid #1565C0;border-radius:6px;background:#fff;color:#1565C0;cursor:pointer;transition:background .2s,color .2s;}
+#hpf .hp-btn:hover{background:#1565C0;color:#fff;}
+#hpf .hp-btn:disabled{border-color:#ccc;color:#ccc;cursor:default;}
+#hpf .hp-btn:disabled:hover{background:#fff;color:#ccc;}
+#hpf .hp-status{font-size:.76em;color:#555;min-width:180px;text-align:center;}
+#hpf .hp-energy{font-size:.78em;color:#555;background:#f0f4ff;border:1px solid #90CAF9;border-radius:4px;padding:3px 12px;font-weight:600;}
+#hpf .hp-noise-row{display:flex;align-items:center;gap:8px;font-size:.76em;color:#555;}
+#hpf .hp-noise-row input[type=range]{width:100px;}
+#hpf .hp-legend{display:flex;gap:14px;font-size:.64em;color:#555;flex-wrap:wrap;justify-content:center;}
+#hpf .hp-legend-item{display:flex;align-items:center;gap:4px;}
+#hpf .hp-legend-box{width:14px;height:14px;border-radius:3px;border:1px solid #aaa;}
+#hpf .hp-overlap{font-size:.7em;color:#555;background:#fff8e1;border:1px solid #FFD54F;border-radius:4px;padding:2px 10px;}
+</style>
+<script>
+(function(){
+const ROWS=6,COLS=6,N=36;
+const PATS=[
+  [-1,-1,1,1,-1,-1, -1,-1,1,1,-1,-1, 1,1,1,1,1,1, 1,1,1,1,1,1, -1,-1,1,1,-1,-1, -1,-1,1,1,-1,-1],
+  [1,1,1,1,1,1, 1,-1,-1,-1,-1,1, 1,-1,-1,-1,-1,1, 1,-1,-1,-1,-1,1, 1,-1,-1,-1,-1,1, 1,1,1,1,1,1],
+  [1,1,-1,-1,1,1, 1,1,-1,-1,1,1, -1,-1,1,1,-1,-1, -1,-1,1,1,-1,-1, 1,1,-1,-1,1,1, 1,1,-1,-1,1,1]
+];
+const PAT_LABELS=["Патерн 1","Патерн 2","Патерн 3"];
+
+let W=Array.from({length:N},()=>Array(N).fill(0));
+let stored=[false,false,false];
+let state=Array(N).fill(1);
+let mode='learn';
+let recallIdx=null;
+let animId=null;
+
+function el(tag,cls){const e=document.createElement(tag);if(cls)e.className=cls;return e;}
+function sign(x){return x>=0?1:-1;}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function overlap(s,p){let o=0;for(let i=0;i<N;i++)o+=s[i]*p[i];return(o/N).toFixed(2);}
+function energy(){let e=0;for(let i=0;i<N;i++)for(let j=0;j<N;j++)if(i!==j)e-=0.5*W[i][j]*state[i]*state[j];return e.toFixed(2);}
+function cellColor(v){return v===1?'#1565C0':'#E0E0E0';}
+function wColor(v,max){if(max===0)return'#f0f0f0';const t=v/max;if(t>0){const g=Math.round(255*(1-t));return`rgb(255,${g},${g})`}else{const b=Math.round(255*(1+t));return`rgb(${b},${b},255)`}}
+
+function buildUI(){
+  const root=document.getElementById('hpf');
+  const tabs=el('div','hp-tabs');
+  const tL=el('button','hp-tab active-tab');tL.id='hp-tab-learn';tL.textContent='📖 Навчання';tL.onclick=()=>setMode('learn');
+  const tR=el('button','hp-tab');tR.id='hp-tab-recall';tR.textContent='🔍 Видобування';tR.onclick=()=>setMode('recall');
+  tabs.appendChild(tL);tabs.appendChild(tR);root.appendChild(tabs);
+
+  const body=el('div','hp-body');body.id='hp-body';
+
+  // left: pattern cards
+  const leftCol=el('div','hp-col');
+  const lt=el('div','hp-col-title');lt.textContent='Шаблони для зберігання';leftCol.appendChild(lt);
+  const pw=el('div','hp-pat-wrap');pw.id='hp-pat-wrap';
+  PATS.forEach((p,idx)=>{
+    const card=el('div','hp-pat-card');card.id=`hp-card-${idx}`;
+    const mini=buildMiniGrid(p,7);card.appendChild(mini);
+    const lbl=el('div','hp-pat-label');lbl.textContent=PAT_LABELS[idx];card.appendChild(lbl);
+    card.onclick=()=>mode==='learn'?learnPat(idx):recallPat(idx);
+    pw.appendChild(card);
+  });
+  leftCol.appendChild(pw);body.appendChild(leftCol);
+
+  // center: main state grid
+  const midCol=el('div','hp-col');
+  const mt=el('div','hp-col-title');mt.id='hp-state-title';mt.textContent='Поточний стан';midCol.appendChild(mt);
+  const grid=el('div','hp-grid');grid.id='hp-main-grid';grid.style.gridTemplateColumns=`repeat(${COLS},40px)`;
+  for(let i=0;i<N;i++){const c=el('div','hp-cell');c.id=`hp-c-${i}`;c.style.width='40px';c.style.height='40px';grid.appendChild(c);}
+  midCol.appendChild(grid);
+  const ovlap=el('div','hp-overlap');ovlap.id='hp-overlap';ovlap.textContent='перекриття: –';midCol.appendChild(ovlap);
+  body.appendChild(midCol);
+
+  // right: weight matrix
+  const rightCol=el('div','hp-col');
+  const rt=el('div','hp-col-title');rt.textContent='Матриця ваг W';rightCol.appendChild(rt);
+  const cvs=document.createElement('canvas');cvs.id='hp-wcanvas';cvs.width=180;cvs.height=180;rightCol.appendChild(cvs);
+  const wLegend=el('div');wLegend.style.cssText='display:flex;justify-content:space-between;width:180px;font-size:.55em;color:#888;margin-top:2px;';
+  wLegend.innerHTML='<span style="color:#6666ff">● w&lt;0</span><span>0</span><span style="color:#ff6666">● w&gt;0</span>';
+  rightCol.appendChild(wLegend);
+  body.appendChild(rightCol);
+  root.appendChild(body);
+
+  // learn controls
+  const lc=el('div','hp-controls');lc.id='hp-learn-ctrl';
+  const rst=el('button','hp-btn');rst.textContent='↺ Скинути';rst.onclick=reset;lc.appendChild(rst);
+  const ls=el('div','hp-status');ls.id='hp-learn-status';ls.textContent='Клікніть по шаблону, щоб зберегти його';lc.appendChild(ls);
+  root.appendChild(lc);
+
+  // recall controls
+  const rc=el('div','hp-controls');rc.id='hp-recall-ctrl';rc.style.display='none';
+  const noiseRow=el('div','hp-noise-row');
+  noiseRow.innerHTML='Шум: ';
+  const nSlider=document.createElement('input');nSlider.type='range';nSlider.id='hp-noise';nSlider.min=0;nSlider.max=50;nSlider.value=20;
+  const nVal=el('span');nVal.id='hp-noise-val';nVal.textContent='20%';
+  nSlider.oninput=()=>{nVal.textContent=nSlider.value+'%';};
+  noiseRow.appendChild(nSlider);noiseRow.appendChild(nVal);rc.appendChild(noiseRow);
+
+  const addNoise=el('button','hp-btn');addNoise.textContent='⚡ Додати шум';addNoise.onclick=applyNoise;rc.appendChild(addNoise);
+  const stepBtn=el('button','hp-btn');stepBtn.id='hp-step-btn';stepBtn.textContent='▶ Крок';stepBtn.onclick=()=>doStep(true);stepBtn.disabled=true;rc.appendChild(stepBtn);
+  const runBtn=el('button','hp-btn');runBtn.id='hp-run-btn';runBtn.textContent='⏩ До збіжності';runBtn.onclick=runToConverge;runBtn.disabled=true;rc.appendChild(runBtn);
+  const eg=el('div','hp-energy');eg.id='hp-energy';eg.textContent='E = –';rc.appendChild(eg);
+  const rs=el('div','hp-status');rs.id='hp-recall-status';rs.textContent='Оберіть шаблон для видобування';rc.appendChild(rs);
+  root.appendChild(rc);
+
+  // legends
+  const ll=el('div','hp-legend');ll.id='hp-learn-leg';
+  [['#1565C0','','s = +1'],['#E0E0E0','#aaa','s = −1'],['#2E7D32','','збережено']].forEach(([bg,bd,lbl])=>{
+    const it=el('div','hp-legend-item');const bx=el('div','hp-legend-box');bx.style.background=bg;if(bd)bx.style.borderColor=bd;it.appendChild(bx);it.appendChild(document.createTextNode(lbl));ll.appendChild(it);
+  });root.appendChild(ll);
+  const rl=el('div','hp-legend');rl.id='hp-recall-leg';rl.style.display='none';
+  [['#1565C0','','s = +1'],['#E0E0E0','#aaa','s = −1'],['#F9A825','','зашумлений'],['#2E7D32','','збігся']].forEach(([bg,bd,lbl])=>{
+    const it=el('div','hp-legend-item');const bx=el('div','hp-legend-box');bx.style.background=bg;if(bd)bx.style.borderColor=bd;it.appendChild(bx);it.appendChild(document.createTextNode(lbl));rl.appendChild(it);
+  });root.appendChild(rl);
+}
+
+function buildMiniGrid(pat,sz){
+  const g=el('div','hp-grid');g.style.gridTemplateColumns=`repeat(${COLS},${sz}px)`;g.style.pointerEvents='none';
+  for(let i=0;i<N;i++){const c=el('div','hp-cell');c.style.width=sz+'px';c.style.height=sz+'px';c.style.background=cellColor(pat[i]);g.appendChild(c);}
+  return g;
+}
+
+function renderState(highlight){
+  for(let i=0;i<N;i++){
+    const c=document.getElementById(`hp-c-${i}`);
+    c.style.background=highlight&&highlight.has(i)?'#F9A825':cellColor(state[i]);
+  }
+  document.getElementById('hp-energy').textContent='E = '+energy();
+  if(recallIdx!==null){
+    const o=overlap(state,PATS[recallIdx]);
+    document.getElementById('hp-overlap').textContent='перекриття m = '+o;
+  }
+}
+
+function drawWeights(){
+  const cvs=document.getElementById('hp-wcanvas');if(!cvs)return;
+  const ctx=cvs.getContext('2d');const cw=cvs.width,ch=cvs.height;
+  const cs=cw/N;
+  let maxW=0;for(let i=0;i<N;i++)for(let j=0;j<N;j++)if(Math.abs(W[i][j])>maxW)maxW=Math.abs(W[i][j]);
+  for(let i=0;i<N;i++)for(let j=0;j<N;j++){ctx.fillStyle=wColor(W[i][j],maxW);ctx.fillRect(j*cs,i*cs,cs,cs);}
+}
+
+function learnPat(idx){
+  if(stored[idx])return;
+  const p=PATS[idx];
+  for(let i=0;i<N;i++)for(let j=0;j<N;j++)if(i!==j)W[i][j]+=p[i]*p[j]/N;
+  stored[idx]=true;
+  document.getElementById(`hp-card-${idx}`).classList.add('stored');
+  document.getElementById('hp-learn-status').textContent=PAT_LABELS[idx]+' збережено';
+  state=[...p];renderState(null);drawWeights();
+  const anyStored=stored.some(Boolean);
+  document.getElementById('hp-tab-recall').disabled=!anyStored;
+}
+
+function recallPat(idx){
+  if(!stored[idx]){document.getElementById('hp-recall-status').textContent='Спочатку збережіть цей патерн!';return;}
+  recallIdx=idx;state=[...PATS[idx]];
+  PATS.forEach((_,i)=>document.getElementById(`hp-card-${i}`).classList.toggle('active-pat',i===idx));
+  document.getElementById('hp-recall-status').textContent=PAT_LABELS[idx]+' — додайте шум та запустіть';
+  document.getElementById('hp-step-btn').disabled=false;
+  document.getElementById('hp-run-btn').disabled=false;
+  renderState(null);
+}
+
+function applyNoise(){
+  if(recallIdx===null){document.getElementById('hp-recall-status').textContent='Спочатку оберіть патерн!';return;}
+  const pct=parseInt(document.getElementById('hp-noise').value)/100;
+  const noisy=new Set();
+  state=[...PATS[recallIdx]];
+  for(let i=0;i<N;i++)if(Math.random()<pct){state[i]*=-1;noisy.add(i);}
+  document.getElementById('hp-recall-status').textContent='Зашумлено '+noisy.size+' з '+N+' нейронів';
+  document.getElementById('hp-step-btn').disabled=false;
+  document.getElementById('hp-run-btn').disabled=false;
+  renderState(noisy);
+}
+
+function doStep(single){
+  const order=shuffle(Array.from({length:N},(_,i)=>i));
+  let changed=0;
+  for(const i of order){
+    let h=0;for(let j=0;j<N;j++)h+=W[i][j]*state[j];
+    const ns=sign(h);if(ns!==state[i])changed++;state[i]=ns;
+  }
+  renderState(null);
+  if(single){
+    const o=overlap(state,PATS[recallIdx]);
+    document.getElementById('hp-recall-status').textContent='Крок виконано. Змінено: '+changed+' нейронів. m='+o;
+    if(changed===0){document.getElementById('hp-recall-status').textContent='✓ Збіжність! m='+o;document.getElementById('hp-step-btn').disabled=true;document.getElementById('hp-run-btn').disabled=true;}
+  }
+  return changed;
+}
+
+function runToConverge(){
+  document.getElementById('hp-step-btn').disabled=true;document.getElementById('hp-run-btn').disabled=true;
+  let steps=0;
+  function tick(){
+    const ch=doStep(false);steps++;
+    if(ch===0||steps>200){
+      const o=overlap(state,PATS[recallIdx]);
+      document.getElementById('hp-recall-status').textContent='✓ Збіжність за '+steps+' кроків. m='+o;
+    } else { animId=setTimeout(tick,80); }
+  }
+  tick();
+}
+
+function reset(){
+  if(animId){clearTimeout(animId);animId=null;}
+  W=Array.from({length:N},()=>Array(N).fill(0));
+  stored=[false,false,false];state=Array(N).fill(1);recallIdx=null;
+  PATS.forEach((_,i)=>{const c=document.getElementById(`hp-card-${i}`);c.classList.remove('stored','active-pat');});
+  document.getElementById('hp-learn-status').textContent='Клікніть по шаблону, щоб зберегти його';
+  document.getElementById('hp-recall-status').textContent='Оберіть шаблон для видобування';
+  document.getElementById('hp-overlap').textContent='перекриття: –';
+  document.getElementById('hp-step-btn').disabled=true;
+  document.getElementById('hp-run-btn').disabled=true;
+  renderState(null);drawWeights();
+  setMode('learn');
+}
+
+function setMode(m){
+  mode=m;const isL=m==='learn';
+  document.getElementById('hp-learn-ctrl').style.display=isL?'flex':'none';
+  document.getElementById('hp-recall-ctrl').style.display=isL?'none':'flex';
+  document.getElementById('hp-learn-leg').style.display=isL?'flex':'none';
+  document.getElementById('hp-recall-leg').style.display=isL?'none':'flex';
+  document.getElementById('hp-tab-learn').classList.toggle('active-tab',isL);
+  document.getElementById('hp-tab-recall').classList.toggle('active-tab',!isL);
+  document.getElementById('hp-state-title').textContent=isL?'Поточний стан (клік — змінити)':'Поточний стан';
+  if(!isL&&recallIdx!==null){renderState(null);}
+}
+
+buildUI();renderState(null);drawWeights();
+})();
+</script>
+</div>
+```

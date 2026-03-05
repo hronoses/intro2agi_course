@@ -14,3 +14,8 @@ pip install -r requirements.txt
 
 
 ## Практика 1: Моделювання середовища та передбачення наступного стану
+
+
+
+quarto preview lectures/lecture_4/presentation.qmd
+quarto render lectures/lecture_4/lecture4.qmd --to pdf

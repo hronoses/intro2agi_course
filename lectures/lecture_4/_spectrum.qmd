@@ -1,0 +1,50 @@
+```{=html}
+<div style="width:100%; margin-top:30px;">
+  <div style="position:relative; margin:0 30px 50px; height:110px;">
+
+    <!-- Axis line -->
+    <div style="position:absolute; top:70px; left:0; right:0; height:3px; background:#555;"></div>
+    <!-- Left arrowhead -->
+    <div style="position:absolute; top:63px; left:-12px; width:0; height:0;
+                border-right:14px solid #555; border-top:7px solid transparent; border-bottom:7px solid transparent;"></div>
+    <!-- Right arrowhead -->
+    <div style="position:absolute; top:63px; right:-12px; width:0; height:0;
+                border-left:14px solid #555; border-top:7px solid transparent; border-bottom:7px solid transparent;"></div>
+
+    <!-- Deep Learning ~12% -->
+    <!-- <div style="position:absolute; left:12%; transform:translateX(-50%); top:16px; text-align:center;">
+      <div style="font-size:0.55em; font-weight:600; color:#1565C0; line-height:1.3;">Глибоке<br>навчання</div>
+      <div style="width:2px; height:20px; background:#1565C0; margin:3px auto 0;"></div>
+      <div style="width:10px; height:10px; border-radius:50%; background:#1565C0; margin:-1px auto 0;"></div>
+    </div> -->
+
+    <!-- Hopfield ~38% -->
+    <!-- <div style="position:absolute; left:38%; transform:translateX(-50%); top:16px; text-align:center;">
+      <div style="font-size:0.55em; font-weight:600; color:#6A1B9A; line-height:1.3;">Мережа<br>Хопфілда</div>
+      <div style="width:2px; height:20px; background:#6A1B9A; margin:3px auto 0;"></div>
+      <div style="width:10px; height:10px; border-radius:50%; background:#6A1B9A; margin:-1px auto 0;"></div>
+    </div> -->
+
+    <!-- РРП ~62% (highlighted) -->
+    <div style="position:absolute; left:62%; transform:translateX(-50%); top:20px; text-align:center;">
+      <div style="font-size:0.6em; font-weight:700; color:#E64A19;
+                  border:2px solid #E64A19; border-radius:4px; padding:0 6px; background:#FFF3E0;">РРП</div>
+      <div style="width:2px; height:20px; background:#E64A19; margin:3px auto 0;"></div>
+      <div style="width:10px; height:10px; border-radius:50%; background:#E64A19; margin:-1px auto 0;"></div>
+    </div>
+
+    <!-- Computational Neuroscience ~87% -->
+    <div style="position:absolute; left:87%; transform:translateX(-50%); top:16px; text-align:center;">
+      <div style="font-size:0.55em; font-weight:600; color:#2E7D32; line-height:1.3;">Обчислювальна<br>нейронаука</div>
+      <div style="width:2px; height:20px; background:#2E7D32; margin:3px auto 0;"></div>
+      <div style="width:10px; height:10px; border-radius:50%; background:#2E7D32; margin:-1px auto 0;"></div>
+    </div>
+
+  </div>
+  <div style="display:flex; justify-content:space-between; margin:0 30px;
+              font-size:0.65em; color:#777; font-style:italic;">
+    <span>← Абстрактні обчислення</span>
+    <span>Біологічний реалізм →</span>
+  </div>
+</div>
+```
