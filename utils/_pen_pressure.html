@@ -1,0 +1,223 @@
+<style>
+#pen-hud {
+  position: fixed;
+  bottom: 38px;
+  right: 18px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  pointer-events: none;
+  font-family: monospace;
+  font-size: 13px;
+}
+#pen-hud .hud-pill {
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1.5px solid rgba(255,255,255,0.25);
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  transition: all 0.15s;
+  opacity: 0.75;
+}
+#pen-hud .hud-pill.active {
+  opacity: 1;
+  border-color: currentColor;
+}
+#pen-hud .hud-eraser  { color: #90CAF9; }
+#pen-hud .hud-color   { color: #fff; }
+#pen-hud .hud-hint    { color: #555; font-size: 11px; margin-top: 2px; }
+#pen-hud.hud-hidden   { opacity: 0 !important; pointer-events: none; }
+#pen-hud {
+  transition: opacity 0.2s;
+}
+
+/* H key — hide chalkboard palette sidebar */
+body.ui-hidden .palette {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.2s, visibility 0.2s !important;
+}
+.palette {
+  transition: opacity 0.2s, visibility 0.2s;
+}
+</style>
+
+<div id="pen-hud">
+  <div id="hud-eraser" class="hud-pill hud-eraser">✦ eraser  [E]</div>
+  <div id="hud-color"  class="hud-pill hud-color" >● black   [R]</div>
+  <div class="hud-hint">H — hide UI</div>
+</div>
+
+<script>
+// Smooth stylus drawing for RevealJS chalkboard:
+//   - Pressure-sensitive line width (EMA-smoothed)
+//   - Midpoint quadratic Bézier smoothing
+//   - E → toggle eraser   R → toggle black / red
+(function () {
+  'use strict';
+
+  // ── Global drawing state ──────────────────────────────────────────────────
+  let currentPressure = 0.5;
+  let stylusActive    = false;
+  let eraserMode      = false;
+  let penColor        = 'black';   // 'black' | 'red'
+  let hudVisible      = true;
+
+  const COLORS = { black: '#111111', red: '#E53935' };
+  const ERASER_SCALE = 15;   // eraser is 8× wider than current pen width
+
+  // ── HUD ──────────────────────────────────────────────────────────────────
+  function updateHUD() {
+    const eEl = document.getElementById('hud-eraser');
+    const cEl = document.getElementById('hud-color');
+    const hud = document.getElementById('pen-hud');
+    if (!eEl || !cEl || !hud) return;
+
+    if (eraserMode) eEl.classList.add('active');
+    else            eEl.classList.remove('active');
+
+    cEl.textContent = '● ' + penColor + '   [R]';
+    cEl.style.color  = COLORS[penColor];
+    if (!eraserMode) cEl.classList.add('active');
+    else             cEl.classList.remove('active');
+
+    hud.classList.toggle('hud-hidden', !hudVisible);
+  }
+
+  function toggleAllUI() {
+    hudVisible = !hudVisible;
+    updateHUD();
+    document.body.classList.toggle('ui-hidden', !hudVisible);
+  }
+
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
+  document.addEventListener('keydown', function (e) {
+    if (e.target && e.target.tagName === 'INPUT') return;
+    if (e.key === 'e' || e.key === 'E') {
+      e.stopPropagation();
+      eraserMode = !eraserMode;
+      updateHUD();
+    }
+    if (e.key === 'r' || e.key === 'R') {
+      e.stopPropagation();
+      penColor = penColor === 'black' ? 'red' : 'black';
+      updateHUD();
+    }
+    if (e.key === 'h' || e.key === 'H') {
+      e.stopPropagation();
+      toggleAllUI();
+    }
+  }, true);
+
+  // ── Pointer tracking ──────────────────────────────────────────────────────
+  document.addEventListener('pointermove', function (e) {
+    stylusActive    = (e.pointerType === 'pen' || e.pointerType === 'touch');
+    currentPressure = (stylusActive && e.pressure > 0) ? e.pressure : 0.5;
+  }, { capture: true, passive: true });
+
+  document.addEventListener('pointerdown', function (e) {
+    stylusActive    = (e.pointerType === 'pen' || e.pointerType === 'touch');
+    currentPressure = (stylusActive && e.pressure > 0) ? e.pressure : 0.5;
+    // New stroke — clear all point buffers
+    canvasState.forEach(s => { s.pts = []; s.strokeActive = false; });
+  }, { capture: true, passive: true });
+
+  document.addEventListener('pointerup', function () {
+    currentPressure = 0.5;
+    // Clear point buffer on every canvas so the next stroke starts fresh
+    canvasState.forEach(s => { s.pts = []; s.strokeActive = false; });
+  }, { capture: true, passive: true });
+
+  // ── Per-canvas state ──────────────────────────────────────────────────────
+  const canvasState = new Map();
+
+  function state(canvas) {
+    if (!canvasState.has(canvas)) {
+      canvasState.set(canvas, { pts: [], sp: 0.5, strokeActive: false });
+    }
+    return canvasState.get(canvas);
+  }
+
+  // ── patch: stroke() — apply color / eraser override ──────────────────────
+  const _stroke = CanvasRenderingContext2D.prototype.stroke;
+  CanvasRenderingContext2D.prototype.stroke = function () {
+    const savedComposite = this.globalCompositeOperation;
+    const savedStyle     = this.strokeStyle;
+
+    if (eraserMode) {
+      this.globalCompositeOperation = 'destination-out';
+      this.strokeStyle = 'rgba(0,0,0,1)';
+      this.lineWidth   = (this.__pBase || this.lineWidth || 3) * ERASER_SCALE;
+    } else {
+      this.strokeStyle = COLORS[penColor];
+    }
+
+    _stroke.call(this);
+
+    this.globalCompositeOperation = savedComposite;
+    this.strokeStyle               = savedStyle;
+  };
+
+  // ── patch: moveTo — reset buffer on jump ─────────────────────────────────
+  const _moveTo = CanvasRenderingContext2D.prototype.moveTo;
+  CanvasRenderingContext2D.prototype.moveTo = function (x, y) {
+    if (stylusActive) {
+      const s = state(this.canvas);
+      if (s.pts.length > 0) {
+        const last = s.pts[s.pts.length - 1];
+        if (Math.hypot(x - last.x, y - last.y) > 40) {
+          s.pts = [];
+          s.sp  = currentPressure;
+        }
+      }
+      if (s.pts.length === 0) s.pts.push({ x, y });
+      s.strokeActive = true;
+    }
+    return _moveTo.call(this, x, y);
+  };
+
+  // ── patch: lineTo — midpoint Bézier + pressure width ─────────────────────
+  const _lineTo = CanvasRenderingContext2D.prototype.lineTo;
+  CanvasRenderingContext2D.prototype.lineTo = function (x, y) {
+    if (stylusActive) {
+      const s = state(this.canvas);
+
+      // EMA pressure smoothing (α=0.2)
+      s.sp = 0.2 * currentPressure + 0.8 * s.sp;
+
+      if (!this.__pBase) this.__pBase = this.lineWidth || 3;
+      this.lineWidth = Math.max(0.5, this.__pBase * s.sp * 2.2);
+
+      s.pts.push({ x, y });
+      if (s.pts.length > 4) s.pts.shift();
+
+      const n = s.pts.length;
+      if (n >= 3) {
+        const p0 = s.pts[n - 3], p1 = s.pts[n - 2], p2 = s.pts[n - 1];
+        const mx0 = (p0.x + p1.x) * 0.5, my0 = (p0.y + p1.y) * 0.5;
+        const mx1 = (p1.x + p2.x) * 0.5, my1 = (p1.y + p2.y) * 0.5;
+        _moveTo.call(this, mx0, my0);
+        return CanvasRenderingContext2D.prototype.quadraticCurveTo
+          .call(this, p1.x, p1.y, mx1, my1);
+      }
+    } else {
+      if (this.__pBase) { this.lineWidth = this.__pBase; this.__pBase = null; }
+      const s = canvasState.get(this.canvas);
+      if (s) { s.pts = []; s.strokeActive = false; }
+    }
+    return _lineTo.call(this, x, y);
+  };
+
+  // ── patch: beginPath — reset width latch only (pts managed by pointer events)
+  const _beginPath = CanvasRenderingContext2D.prototype.beginPath;
+  CanvasRenderingContext2D.prototype.beginPath = function () {
+    this.__pBase = null;
+    return _beginPath.call(this);
+  };
+
+  updateHUD();
+})();
+</script>

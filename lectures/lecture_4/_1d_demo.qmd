@@ -1,0 +1,256 @@
+```{=html}
+<div id="demo-1d" style="font-family: monospace; user-select: none;">
+  <style>
+    #demo-1d {
+      outline: none;
+    }
+    #demo-1d .demo-section-label {
+      font-size: 0.45em;
+      color: #999;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    #demo-1d canvas {
+      display: block;
+      margin: 0 auto;
+      image-rendering: pixelated;
+    }
+    #demo-1d .controls-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    #demo-1d .ctrl-btn {
+      padding: 5px 18px;
+      font-size: 0.55em;
+      font-family: monospace;
+      border: 1.5px solid #555;
+      background: #1a1a1a;
+      color: #ddd;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    #demo-1d .ctrl-btn:hover { background: #2e2e2e; }
+    #demo-1d .ctrl-btn:active, #demo-1d .ctrl-btn.pressed { background: #444; border-color: #aaa; }
+    #demo-1d .ctrl-btn.active { background: #1B5E20; border-color: #66BB6A; color: #A5D6A7; }
+    #demo-1d .divider { width: 1px; height: 22px; background: #444; margin: 0 6px; }
+    #demo-1d .info-row {
+      display: flex;
+      gap: 30px;
+      margin-top: 8px;
+      font-size: 0.45em;
+      color: #bbb;
+      justify-content: center;
+    }
+    #demo-1d .info-row span b { color: #fff; }
+    #demo-1d .perception-row {
+      display: flex;
+      gap: 3px;
+      margin-top: 6px;
+      justify-content: center;
+      align-items: flex-end;
+    }
+    #demo-1d .p-cell {
+      width: 28px; height: 28px;
+      border-radius: 3px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.5em; color: #eee; font-weight: bold;
+      border: 1.5px solid #444;
+    }
+  </style>
+
+  <!-- World canvas -->
+  <div style="text-align:center;">
+    <div class="demo-section-label">Середовище W (N=50)</div>
+    <canvas id="world-canvas" width="1400" height="28"></canvas>
+  </div>
+
+  <!-- Perception -->
+  <div style="text-align:center; margin-top:14px;">
+    <div class="demo-section-label">Сприйняття o (radius=3)</div>
+    <div class="perception-row" id="perc-cells"></div>
+  </div>
+
+  <!-- Info row -->
+  <div class="info-row">
+    <span>Позиція: <b id="info-pos">10</b></span>
+    <span>Крок: <b id="info-step">0</b></span>
+    <span id="info-dynamic-label" style="color:#66BB6A; display:none;">● Правило 30</span>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-row">
+    <button class="ctrl-btn" id="btn-left"  onclick="demoAct('left')">← (A / ←)</button>
+    <button class="ctrl-btn" id="btn-stay"  onclick="demoAct('stay')">● (S)</button>
+    <button class="ctrl-btn" id="btn-right" onclick="demoAct('right')">→ (D / →)</button>
+    <div class="divider"></div>
+    <button class="ctrl-btn" id="btn-dynamic" onclick="demoToggleDynamic()">⚡ Динамічне (Правило 30)</button>
+    <div class="divider"></div>
+    <button class="ctrl-btn" onclick="demoReset()">↺ Reset</button>
+    <span style="font-size:0.38em; color:#555; margin-left:10px;">← A &nbsp;·&nbsp; S &nbsp;·&nbsp; D →</span>
+  </div>
+</div>
+
+<script>
+(function() {
+  const N = 50, R = 3;
+  const CELL_W = 28, CELL_H = 28;
+  const RULE30 = 30;
+
+  // World state
+  let rng = mulberry32(42);
+  let world = Array.from({length: N}, () => Math.round(rng()));
+  let agentPos = 10;
+  let step = 0;
+  let dynamic = false;
+  let dynInterval = null;
+
+  function mulberry32(seed) {
+    return function() {
+      seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+      let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  function getPerception(pos) {
+    let p = [];
+    for (let i = -R; i <= R; i++) {
+      p.push(world[((pos + i) % N + N) % N]);
+    }
+    return p;
+  }
+
+  function rule30Step() {
+    const next = new Array(N);
+    for (let i = 0; i < N; i++) {
+      const l = world[(i - 1 + N) % N];
+      const c = world[i];
+      const r = world[(i + 1) % N];
+      const idx = (l << 2) | (c << 1) | r;
+      next[i] = (RULE30 >> idx) & 1;
+    }
+    world = next;
+  }
+
+  function drawWorld() {
+    const canvas = document.getElementById('world-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < N; i++) {
+      const x = i * CELL_W;
+      const dist = Math.min((i - agentPos + N) % N, (agentPos - i + N) % N);
+
+      if (i === agentPos) {
+        ctx.fillStyle = '#E64A19';
+      } else if (dist <= R) {
+        ctx.fillStyle = world[i] === 1 ? '#90CAF9' : '#1a3a5c';
+      } else {
+        ctx.fillStyle = world[i] === 1 ? '#e0e0e0' : '#1a1a1a';
+      }
+      ctx.fillRect(x, 0, CELL_W - 1, CELL_H);
+
+      // Agent marker
+      if (i === agentPos) {
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 11px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('A', x + CELL_W / 2, CELL_H / 2 + 4);
+      }
+    }
+    // Perception bracket
+    if (agentPos - R >= 0 && agentPos + R < N) {
+      ctx.strokeStyle = '#90CAF9';
+      ctx.lineWidth = 2;
+      const lx = (agentPos - R) * CELL_W;
+      const rx = (agentPos + R + 1) * CELL_W - 1;
+      ctx.strokeRect(lx, 1, rx - lx, CELL_H - 2);
+    }
+  }
+
+  function drawPerception(perc) {
+    const el = document.getElementById('perc-cells');
+    if (!el) return;
+    el.innerHTML = '';
+    perc.forEach((v, i) => {
+      const div = document.createElement('div');
+      div.className = 'p-cell';
+      if (i === R) {
+        div.style.background = '#E64A19';
+        div.style.borderColor = '#E64A19';
+      } else {
+        div.style.background = v === 1 ? '#eee' : '#222';
+        div.style.color = v === 1 ? '#111' : '#777';
+      }
+      div.textContent = v;
+      el.appendChild(div);
+    });
+  }
+
+  function updateInfo() {
+    document.getElementById('info-pos').textContent = agentPos;
+    document.getElementById('info-step').textContent = step;
+    document.getElementById('info-dynamic-label').style.display = dynamic ? 'inline' : 'none';
+  }
+
+  function render() {
+    drawWorld();
+    drawPerception(getPerception(agentPos));
+    updateInfo();
+  }
+
+  window.demoAct = function(action) {
+    if (action === 'left')  agentPos = (agentPos - 1 + N) % N;
+    if (action === 'right') agentPos = (agentPos + 1) % N;
+    step++;
+    const btnMap = {left: 'btn-left', right: 'btn-right', stay: 'btn-stay'};
+    const btn = document.getElementById(btnMap[action]);
+    if (btn) { btn.classList.add('pressed'); setTimeout(() => btn.classList.remove('pressed'), 150); }
+    render();
+  };
+
+  window.demoToggleDynamic = function() {
+    dynamic = !dynamic;
+    const btn = document.getElementById('btn-dynamic');
+    if (dynamic) {
+      btn.classList.add('active');
+      dynInterval = setInterval(() => { rule30Step(); step++; render(); }, 300);
+    } else {
+      btn.classList.remove('active');
+      clearInterval(dynInterval);
+      dynInterval = null;
+    }
+    updateInfo();
+  };
+
+  window.demoReset = function() {
+    if (dynInterval) { clearInterval(dynInterval); dynInterval = null; }
+    dynamic = false;
+    document.getElementById('btn-dynamic').classList.remove('active');
+    rng = mulberry32(42);
+    world = Array.from({length: N}, () => Math.round(rng()));
+    agentPos = 10; step = 0;
+    render();
+  };
+
+  // Keyboard support — listen on document, only when slide is visible
+  document.addEventListener('keydown', function(e) {
+    // Don't hijack if user is typing somewhere
+    if (e.target && e.target.tagName === 'INPUT') return;
+    if (e.key === 'a' || e.key === 'ArrowLeft')  { e.stopPropagation(); demoAct('left'); }
+    if (e.key === 'd' || e.key === 'ArrowRight') { e.stopPropagation(); demoAct('right'); }
+    if (e.key === 's') demoAct('stay');
+  }, true);
+
+  // Init
+  render();
+})();
+</script>
+```
