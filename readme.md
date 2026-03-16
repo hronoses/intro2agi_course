@@ -71,6 +71,8 @@ Pdf версія умови завдання знаходиться за адр�
     # PDF — потребує LuaLaTeX (TeX Live або MiKTeX)
     quarto render practice_1/homework/report_Прізвище.qmd --to pdf
     quarto render practice_1/homework/instructions.qmd --to pdf
+    quarto render practice_2/homework/instructions.qmd --to pdf
+    quarto render practice_2/homework/report_template.qmd --to pdf
     ```
 
 > Якщо LaTeX не встановлений, спробуйте встановити, або збережіть pdf з браузера.

@@ -2,3 +2,5 @@ numpy
 opencv-python
 matplotlib
 scikit-learn
+rerun-sdk
+pynput

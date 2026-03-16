@@ -26,14 +26,3 @@ class World:
         born    = (self.state == 0) &  (neighbours == 3)
         self.state = (survive | born).view(np.uint8)
         self.time_step += 1
-
-    def visualize_opencv(self, agent_pos=None, cell_size=30):
-        colour_map = np.zeros((self.height, self.width, 3), dtype=np.uint8)
-        colour_map[self.state == 1] = (255, 255, 255)
-        if agent_pos is not None:
-            colour_map[agent_pos[1], agent_pos[0]] = (0, 0, 255)
-
-        img = np.repeat(np.repeat(colour_map, cell_size, axis=0), cell_size, axis=1)
-        img[:, ::cell_size] = (50, 50, 50)
-        img[::cell_size, :] = (50, 50, 50)
-        return img

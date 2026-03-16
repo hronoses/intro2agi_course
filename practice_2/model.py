@@ -4,11 +4,11 @@ import cv2
 from objects import ObjectTracker
 
 
-_UNCERTAIN = (128, 128, 128)  # grey – never observed
-_DEAD      = (20,  20,  20)   # dark – known dead
-_ALIVE     = (255, 255, 255)  # white – known alive
-_AGENT     = (0,   0,   255)  # red – agent position
-_BBOX_CLR  = (0,   200, 80)   # green – object bounding box
+# _UNCERTAIN = (128, 128, 128)  # grey – never observed
+# _DEAD      = (20,  20,  20)   # dark – known dead
+# _ALIVE     = (255, 255, 255)  # white – known alive
+# _AGENT     = (0,   0,   255)  # red – agent position
+# _BBOX_CLR  = (0,   200, 80)   # green – object bounding box
 
 
 class WorldModel:
@@ -49,33 +49,9 @@ class WorldModel:
         if self.saliency is not None:
             self.saliency.update(perception)
             blobs = self.saliency.segment()
-            self._tracker.update(blobs, agent_pos, r, world_time)
+            self._tracker.update(blobs, agent_pos, r, world_time, self._values)
 
     @property
     def coverage(self) -> float:
         return self._known.mean()
 
-    def visualize_opencv(self, agent_pos=None, cell_size=10) -> np.ndarray:
-        colour_map = np.full((self.height, self.width, 3), _UNCERTAIN, dtype=np.uint8)
-        colour_map[self._known & (self._values == 0)] = _DEAD
-        colour_map[self._known & (self._values == 1)] = _ALIVE
-        if agent_pos is not None:
-            colour_map[agent_pos[1] % self.height, agent_pos[0] % self.width] = _AGENT
-
-        img = np.repeat(np.repeat(colour_map, cell_size, axis=0), cell_size, axis=1)
-        img[:, ::cell_size] = (50, 50, 50)
-        img[::cell_size, :] = (50, 50, 50)
-
-        # Draw object bounding boxes and IDs
-        for obj in self._tracker.objects.values():
-            bx, by, bw, bh = obj.bbox
-            x1 = bx * cell_size
-            y1 = by * cell_size
-            x2 = ((bx + bw) % self.width)  * cell_size
-            y2 = ((by + bh) % self.height) * cell_size
-            cv2.rectangle(img, (x1, y1), (x2, y2), _BBOX_CLR, 1)
-            cv2.putText(img, f'{obj.id} a={obj.area}',
-                        (x1 + 2, y1 + 10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.3, _BBOX_CLR, 1, cv2.LINE_AA)
-
-        return img

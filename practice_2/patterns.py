@@ -91,14 +91,23 @@ class PatternMatcher:
 
         scores = []
         for obj in model.objects.values():
-            bx, by, bw, bh = obj.bbox
-            ex, ey = bx - pad_x, by - pad_y
-            ew, eh = bw + pw,    bh + ph
-            region = self._extract_region(model._values, (ex, ey, ew, eh))
-            score  = self._score_object(region)
-            if debug:
-                print(f'  obj_id={obj.id}  bbox={obj.bbox}  '
-                      f'region_shape={region.shape}  score={score:.4f}')
+            if obj.history is not None and obj.history.cycle is not None:
+                # Phase-invariant: score every frame in the detected cycle, take min
+                score = min(
+                    self._score_object(f.astype(np.float32))
+                    for f in obj.history.cycle
+                )
+                if debug:
+                    print(f'  obj_id={obj.id}  cycle_len={len(obj.history.cycle)}  score={score:.4f}')
+            else:
+                bx, by, bw, bh = obj.bbox
+                ex, ey = bx - pad_x, by - pad_y
+                ew, eh = bw + pw,    bh + ph
+                region = self._extract_region(model._values, (ex, ey, ew, eh))
+                score  = self._score_object(region)
+                if debug:
+                    print(f'  obj_id={obj.id}  bbox={obj.bbox}  '
+                          f'region_shape={region.shape}  score={score:.4f}')
             scores.append({'obj_id': obj.id, 'centroid': obj.centroid, 'hamming': score})
 
         scores.sort(key=lambda s: s['hamming'])
