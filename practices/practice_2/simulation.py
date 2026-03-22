@@ -46,8 +46,8 @@ class Simulation:
                 seek_policy = PatternSeekPolicy(PatternMatcher(pattern, name, metric=pattern_metric))
                 self._policies.append(seek_policy)
                 self._policy_idx  = len(self._policies) - 1
-                self.policy       = seek_policy
-                self.auto_control = True
+                # self.policy       = seek_policy
+                # self.auto_control = True
                 print(f'Pattern loaded: {name}  ({pattern.shape[0]}x{pattern.shape[1]})')
                 print(f'Control mode: AUTO ({self.policy.name})')
             except FileNotFoundError:
@@ -77,7 +77,7 @@ class Simulation:
             self.auto_control = not self.auto_control
             mode = f'AUTO ({self.policy.name})' if self.auto_control else 'KEYBOARD'
             print(f'Control mode: {mode}')
-        elif key == 'p' and self.auto_control:
+        elif key == 'p':
             self._policy_idx = (self._policy_idx + 1) % len(self._policies)
             self.policy = self._policies[self._policy_idx]
             print(f'Policy: {self.policy.name}')

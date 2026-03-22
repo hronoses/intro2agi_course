@@ -41,6 +41,7 @@ class RerunViz:
                     rrb.Spatial2DView(name='Motion Saliency', origin='saliency/motion'),
                     rrb.Spatial2DView(name='Static Saliency', origin='saliency/static'),
                     rrb.Tabs(
+                        rrb.TextDocumentView(name='Debug',    origin='debug/info'),
                         rrb.TextLogView(name='Policy Log',   origin='policy/state'),
                         rrb.TextDocumentView(name='Objects', origin='objects'),
                         name='Info',
@@ -85,7 +86,7 @@ class RerunViz:
             self._log_objects(model)
 
         if policy is not None:
-            self._log_policy(policy, model)
+            self._log_policy(policy, model, agent, world_time)
 
         if matches:
             self._log_matches(matches)
@@ -162,15 +163,31 @@ class RerunViz:
         rr.log('objects/tracked', rr.Boxes2D(mins=mins, sizes=sizes,
                                               labels=labels, colors=colors))
 
-    def _log_policy(self, policy, model):
+    def _log_policy(self, policy, model, agent=None, step: int = 0):
         unknown  = int((~model._known).sum())
         coverage = model._known.mean() * 100
-        phase    = 'A-explore' if unknown > 0 else 'B-seek'
+        phase    = 'A – explore' if unknown > 0 else 'B – seek'
         rr.log('policy/state', rr.TextLog(
             f'policy={policy.name}  phase={phase}  '
             f'coverage={coverage:.1f}%  unknown={unknown}  objects={len(model.objects)}',
             level=rr.TextLogLevel.INFO,
         ))
+
+        pos_str = f'({agent.position[0]}, {agent.position[1]})' if agent is not None else 'n/a'
+        lines = [
+            f'## Debug Info',
+            f'',
+            f'| Field       | Value |',
+            f'|-------------|-------|',
+            f'| **Step**    | {step} |',
+            f'| **Policy**  | `{policy.name}` |',
+            f'| **Phase**   | {phase} |',
+            f'| **Position**| {pos_str} |',
+            f'| **Coverage**| {coverage:.1f} % |',
+            f'| **Unknown** | {unknown} cells |',
+            f'| **Objects** | {len(model.objects)} |',
+        ]
+        rr.log('debug/info', rr.TextDocument('\n'.join(lines), media_type='text/markdown'))
 
     def _log_matches(self, matches: list):
         for m in matches:

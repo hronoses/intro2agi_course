@@ -1,0 +1,280 @@
+```{=html}
+<div id="demo-gol" style="font-family: monospace; user-select: none;" tabindex="0">
+  <style>
+    #demo-gol { outline: none; }
+    #demo-gol .demo-label {
+      font-size: 0.45em; color: #999; letter-spacing: 0.08em;
+      text-transform: uppercase; margin-bottom: 4px; text-align: center;
+    }
+    #demo-gol canvas { display: block; margin: 0 auto; image-rendering: pixelated; }
+    #demo-gol .row { display: flex; gap: 8px; margin-top: 10px; justify-content: center; align-items: center; flex-wrap: wrap; }
+    #demo-gol .btn {
+      padding: 5px 16px; font-size: 0.50em; font-family: monospace;
+      border: 1.5px solid #555; background: #1a1a1a; color: #ddd;
+      border-radius: 4px; cursor: pointer; transition: background 0.1s;
+    }
+    #demo-gol .btn:hover { background: #2e2e2e; }
+    #demo-gol .btn:active, #demo-gol .btn.pressed { background: #444; border-color: #aaa; }
+    #demo-gol .btn.active { background: #1B5E20; border-color: #66BB6A; color: #A5D6A7; }
+    #demo-gol .divider { width: 1px; height: 22px; background: #444; margin: 0 4px; }
+    #demo-gol .info {
+      display: flex; gap: 24px; margin-top: 6px;
+      font-size: 0.42em; color: #bbb; justify-content: center;
+    }
+    #demo-gol .info b { color: #fff; }
+    #demo-gol .canvases {
+      display: flex; gap: 20px; justify-content: center; align-items: flex-start; flex-wrap: wrap;
+    }
+  </style>
+
+  <div class="canvases">
+    <div>
+      <div class="demo-label">Світ W (30×30) — клікніть для малювання</div>
+      <canvas id="gol-world" width="450" height="450"></canvas>
+    </div>
+    <div>
+      <div class="demo-label">Сприйняття агента (2S+1)²</div>
+      <canvas id="gol-perc" width="285" height="285"></canvas>
+    </div>
+  </div>
+
+  <div class="info">
+    <span>Крок: <b id="gol-step">0</b></span>
+    <span>Агент: (<b id="gol-ax">15</b>, <b id="gol-ay">15</b>)</span>
+    <span>Живих: <b id="gol-alive">0</b></span>
+    <span id="gol-run-label" style="color:#66BB6A; display:none;">● Автозапуск</span>
+  </div>
+
+  <div class="row">
+    <button class="btn" id="gol-btn-up"    onclick="golMove('up')">↑ (W)</button>
+    <button class="btn" id="gol-btn-down"  onclick="golMove('down')">↓ (S)</button>
+    <button class="btn" id="gol-btn-left"  onclick="golMove('left')">← (A)</button>
+    <button class="btn" id="gol-btn-right" onclick="golMove('right')">→ (D)</button>
+    <div class="divider"></div>
+    <button class="btn" onclick="golStepOnce()">⏭ Крок GoL</button>
+    <button class="btn" id="gol-btn-run" onclick="golToggleRun()">▶ Autoplay</button>
+    <div class="divider"></div>
+    <button class="btn" onclick="golPreset('blinker')">Blinker</button>
+    <button class="btn" onclick="golPreset('glider')">Glider</button>
+    <button class="btn" onclick="golPreset('block')">Block</button>
+    <button class="btn" onclick="golPreset('random')">Random</button>
+    <div class="divider"></div>
+    <button class="btn" onclick="golClear()">Clear</button>
+    <button class="btn" onclick="golReset()">↺ Reset</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  const N = 30, S = 4;
+  const CELL = 15;
+  const PCELL = 15;
+  const PSIZE = 2 * S + 1;
+
+  let grid = Array.from({length: N}, () => new Uint8Array(N));
+  let ax = 15, ay = 15, step = 0;
+  let running = false, runInterval = null;
+
+  // ── Seeded RNG ──
+  function mulberry32(s) {
+    return function() {
+      s |= 0; s = s + 0x6D2B79F5 | 0;
+      let t = Math.imul(s ^ s >>> 15, 1 | s);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  let rng = mulberry32(42);
+
+  function initRandom() {
+    for (let y = 0; y < N; y++)
+      for (let x = 0; x < N; x++)
+        grid[y][x] = rng() < 0.3 ? 1 : 0;
+  }
+  initRandom();
+
+  // ── Game of Life step ──
+  function golStep() {
+    const next = Array.from({length: N}, () => new Uint8Array(N));
+    for (let y = 0; y < N; y++) {
+      for (let x = 0; x < N; x++) {
+        let n = 0;
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            n += grid[((y + dy) % N + N) % N][((x + dx) % N + N) % N];
+          }
+        }
+        if (grid[y][x] === 1) {
+          next[y][x] = (n === 2 || n === 3) ? 1 : 0;
+        } else {
+          next[y][x] = (n === 3) ? 1 : 0;
+        }
+      }
+    }
+    grid = next;
+    step++;
+  }
+
+  // ── Drawing ──
+  function drawWorld() {
+    const c = document.getElementById('gol-world');
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, c.width, c.height);
+    for (let y = 0; y < N; y++) {
+      for (let x = 0; x < N; x++) {
+        const inPerc = Math.abs(((x - ax + N + Math.floor(N/2)) % N) - Math.floor(N/2)) <= S &&
+                       Math.abs(((y - ay + N + Math.floor(N/2)) % N) - Math.floor(N/2)) <= S;
+        if (x === ax && y === ay) {
+          ctx.fillStyle = '#E64A19';
+        } else if (inPerc) {
+          ctx.fillStyle = grid[y][x] ? '#90CAF9' : '#1a3a5c';
+        } else {
+          ctx.fillStyle = grid[y][x] ? '#e0e0e0' : '#1a1a1a';
+        }
+        ctx.fillRect(x * CELL, y * CELL, CELL - 1, CELL - 1);
+      }
+    }
+    // Agent marker
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 9px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('A', ax * CELL + CELL / 2, ay * CELL + CELL / 2);
+  }
+
+  function drawPerception() {
+    const c = document.getElementById('gol-perc');
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, c.width, c.height);
+    for (let dy = -S; dy <= S; dy++) {
+      for (let dx = -S; dx <= S; dx++) {
+        const wx = ((ax + dx) % N + N) % N;
+        const wy = ((ay + dy) % N + N) % N;
+        const v = grid[wy][wx];
+        const px = (dx + S) * PCELL;
+        const py = (dy + S) * PCELL;
+        if (dx === 0 && dy === 0) {
+          ctx.fillStyle = '#E64A19';
+        } else {
+          ctx.fillStyle = v ? '#90CAF9' : '#1a3a5c';
+        }
+        ctx.fillRect(px, py, PCELL - 1, PCELL - 1);
+        ctx.fillStyle = '#eee';
+        ctx.font = '8px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(v, px + PCELL / 2, py + PCELL / 2);
+      }
+    }
+  }
+
+  function updateInfo() {
+    const el = (id) => document.getElementById(id);
+    el('gol-step').textContent = step;
+    el('gol-ax').textContent = ax;
+    el('gol-ay').textContent = ay;
+    let alive = 0;
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) alive += grid[y][x];
+    el('gol-alive').textContent = alive;
+    el('gol-run-label').style.display = running ? 'inline' : 'none';
+  }
+
+  function render() { drawWorld(); drawPerception(); updateInfo(); }
+
+  // ── Actions ──
+  window.golMove = function(dir) {
+    if (dir === 'up')    ay = (ay - 1 + N) % N;
+    if (dir === 'down')  ay = (ay + 1) % N;
+    if (dir === 'left')  ax = (ax - 1 + N) % N;
+    if (dir === 'right') ax = (ax + 1) % N;
+    render();
+  };
+
+  window.golStepOnce = function() { golStep(); render(); };
+
+  window.golToggleRun = function() {
+    running = !running;
+    const btn = document.getElementById('gol-btn-run');
+    if (running) {
+      btn.classList.add('active');
+      btn.textContent = '⏸ Pause';
+      runInterval = setInterval(() => { golStep(); render(); }, 150);
+    } else {
+      btn.classList.remove('active');
+      btn.textContent = '▶ Autoplay';
+      clearInterval(runInterval); runInterval = null;
+    }
+    updateInfo();
+  };
+
+  window.golPreset = function(name) {
+    const cx = ax, cy = ay;
+    const place = (pattern) => {
+      const h = pattern.length, w = pattern[0].length;
+      const ox = Math.floor(w / 2), oy = Math.floor(h / 2);
+      for (let y = 0; y < h; y++)
+        for (let x = 0; x < w; x++)
+          grid[((cy + y - oy) % N + N) % N][((cx + x - ox) % N + N) % N] = pattern[y][x];
+    };
+    if (name === 'blinker') place([[0,0,0,0,0],[0,0,0,0,0],[0,1,1,1,0],[0,0,0,0,0],[0,0,0,0,0]]);
+    if (name === 'glider')  place([[0,0,1,0,0],[0,0,0,1,0],[0,1,1,1,0],[0,0,0,0,0],[0,0,0,0,0]]);
+    if (name === 'block')   place([[0,0,0,0],[0,1,1,0],[0,1,1,0],[0,0,0,0]]);
+    if (name === 'random') {
+      rng = mulberry32(Date.now() & 0xFFFFFF);
+      for (let y = 0; y < N; y++)
+        for (let x = 0; x < N; x++)
+          grid[y][x] = rng() < 0.3 ? 1 : 0;
+    }
+    render();
+  };
+
+  window.golClear = function() {
+    for (let y = 0; y < N; y++) grid[y].fill(0);
+    step = 0;
+    render();
+  };
+
+  window.golReset = function() {
+    if (runInterval) { clearInterval(runInterval); runInterval = null; }
+    running = false;
+    const btn = document.getElementById('gol-btn-run');
+    if (btn) { btn.classList.remove('active'); btn.textContent = '▶ Autoplay'; }
+    rng = mulberry32(42);
+    initRandom();
+    ax = 15; ay = 15; step = 0;
+    render();
+  };
+
+  // ── Click to draw ──
+  const worldCanvas = document.getElementById('gol-world');
+  if (worldCanvas) {
+    worldCanvas.addEventListener('click', function(e) {
+      const rect = worldCanvas.getBoundingClientRect();
+      const scaleX = worldCanvas.width / rect.width;
+      const scaleY = worldCanvas.height / rect.height;
+      const mx = Math.floor((e.clientX - rect.left) * scaleX / CELL);
+      const my = Math.floor((e.clientY - rect.top) * scaleY / CELL);
+      if (mx >= 0 && mx < N && my >= 0 && my < N) {
+        grid[my][mx] ^= 1;
+        render();
+      }
+    });
+  }
+
+  // ── Keyboard ──
+  document.addEventListener('keydown', function(e) {
+    if (e.target && e.target.tagName === 'INPUT') return;
+    const keyMap = { 'w': 'up', 'ArrowUp': 'up', 's': 'down', 'ArrowDown': 'down',
+                     'a': 'left', 'ArrowLeft': 'left', 'd': 'right', 'ArrowRight': 'right' };
+    if (keyMap[e.key]) { e.stopPropagation(); golMove(keyMap[e.key]); }
+    if (e.key === ' ') { e.preventDefault(); golToggleRun(); }
+    if (e.key === 'n') golStepOnce();
+  }, true);
+
+  render();
+})();
+</script>
+```
