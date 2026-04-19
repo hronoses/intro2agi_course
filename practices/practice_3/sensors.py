@@ -123,4 +123,96 @@ class IMU:
         )
 
 
+# ======================================================================
+# Range sensor (ray-casting lidar / depth camera)
+# ======================================================================
+
+class RangeSensor(Sensor):
+    """First-person radial depth sensor via vectorised ray casting.
+
+    Casts ``camera_w`` rays uniformly spread over
+    ``[orientation − fov_half, orientation + fov_half]``.  The centre column
+    always points forward.
+
+    Attributes:
+        camera_w:   Number of rays (columns).
+        obs_radius: Maximum measurable range in world units.
+        ray_step:   March step along each ray in world units (keep ≤ 0.7 to
+                    avoid skipping 1×1 world cells).
+        fov_half:   Half-FOV angle in radians.  Use ``π`` for full 360° lidar.
+    """
+
+    def __init__(self,
+                 camera_w:   int   = 360,
+                 obs_radius: float = 25.0,
+                 ray_step:   float = 0.1,
+                 fov_half:   float = np.radians(40.0),
+                 noise_std:  float = 0.0):
+        super().__init__(noise_std)
+        self.camera_w   = camera_w
+        self.obs_radius = obs_radius
+        self.ray_step   = ray_step
+        self.fov_half   = fov_half
+
+    # ------------------------------------------------------------------
+
+    def read(self, agent) -> np.ndarray:
+        """Return distances to the first obstacle for each ray.
+
+        Args:
+            agent: Agent instance (provides ``position``, ``orientation``,
+                   and ``world``).
+
+        Returns:
+            Float32 array of shape ``(camera_w,)``, values in
+            ``(0, obs_radius]``.  Close obstacles → small values.
+        """
+        r = self._cast_rays(agent)
+        if self.noise_std > 0.0:
+            r = np.clip(self._add_noise(r), 0.0, self.obs_radius).astype(np.float32)
+        return r
+
+    def _cast_rays(self, agent) -> np.ndarray:
+        """Vectorised ray march — identical algorithm to the original Agent._cast_rays."""
+        cx, cy = agent.position
+        n_rays = self.camera_w
+
+        angles = np.linspace(
+            agent.orientation - self.fov_half,
+            agent.orientation + self.fov_half,
+            n_rays,
+        )
+        dx_arr = np.cos(angles)
+        dy_arr = np.sin(angles)
+
+        t_vals = np.arange(self.ray_step,
+                           self.obs_radius + self.ray_step,
+                           self.ray_step)
+
+        xs = cx + dx_arr[:, np.newaxis] * t_vals[np.newaxis, :]
+        ys = cy + dy_arr[:, np.newaxis] * t_vals[np.newaxis, :]
+
+        ix_grid = np.floor(xs).astype(np.int32)
+        iy_grid = np.floor(ys).astype(np.int32)
+
+        ix = ix_grid % agent.world.width
+        iy = iy_grid % agent.world.height
+
+        hits = agent.world.state[iy, ix]
+
+        # Diagonal corner gap fix
+        ix_prev = np.concatenate([ix_grid[:, :1], ix_grid[:, :-1]], axis=1)
+        iy_prev = np.concatenate([iy_grid[:, :1], iy_grid[:, :-1]], axis=1)
+        diag = (ix_grid != ix_prev) & (iy_grid != iy_prev)
+        if diag.any():
+            ix_p = ix_prev % agent.world.width
+            iy_p = iy_prev % agent.world.height
+            gap_hits = agent.world.state[iy, ix_p] | agent.world.state[iy_p, ix]
+            hits = hits | (diag & gap_hits)
+
+        first_idx = np.argmax(hits, axis=1)
+        hit_found = hits[np.arange(n_rays), first_idx].astype(bool)
+        return np.where(hit_found, t_vals[first_idx], self.obs_radius).astype(np.float32)
+
+
 # Odometry estimators have been consolidated into MotionModel in model.py.

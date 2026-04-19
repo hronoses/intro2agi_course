@@ -5,7 +5,7 @@ from pynput import keyboard as kb
 
 from world import World
 from agent import Agent
-from model import PerceptionModel, MotionModel
+from model import PerceptionModel, MotionModel, OccupancyGridModel
 from action import Policy
 from viz_rerun import RerunViz
 from sensors import PositionSensor, OrientationSensor, IMU
@@ -21,12 +21,8 @@ Controls (type anywhere — global keyboard capture):
   z / x          - Kill / Revive cell under agent
   t              - Toggle keyboard / auto policy
   m              - Cycle odometry estimator (simple ↔ imu)
+  o              - Cycle occupancy orientation mode (precise / noisy / unknown)
   q / ESC        - Quit"""
-
-# Continuous torque (N·m) applied to the agent while a/d are held.
-# Terminal Δω = _HOLD_TORQUE / agent.angular_damping ≈ 2 rad/s.
-_HOLD_TORQUE = 1.25
-
 
 class Simulation:
     def __init__(self,
@@ -57,7 +53,17 @@ class Simulation:
         self.agent   = Agent(self.world, start_pos,
                              camera_w=camera_w, camera_h=camera_h,
                              obs_radius=obs_radius, ray_step=ray_step)
-        self.tracker = PerceptionModel()
+        self.tracker  = PerceptionModel()
+
+        # Occupancy map: 2× map resolution vs. CA grid (not aligned)
+        _map_res = 0.5
+        self.occupancy = OccupancyGridModel(
+            map_width  = int(self.world.width  / _map_res),
+            map_height = int(self.world.height / _map_res),
+            resolution = _map_res,
+            origin     = (0.0, 0.0),
+        )
+        self.occ_orientation_mode: str = 'precise'   # 'precise' | 'noisy' | 'unknown'
 
         self._policy:      Policy | None = None
         self.auto_control: bool          = False
@@ -120,6 +126,12 @@ class Simulation:
         elif key == 'm':
             new_mode = self.motion_model.toggle_mode(self.agent)
             print(f"Odometry estimator: {new_mode}")
+        elif key == 'o':
+            modes = ('precise', 'noisy', 'unknown')
+            self.occ_orientation_mode = modes[
+                (modes.index(self.occ_orientation_mode) + 1) % len(modes)
+            ]
+            print(f"Occupancy orientation mode: {self.occ_orientation_mode}")
         elif key == 'e':
             self.agent.toggle_cell()
         elif key == 'z':
@@ -191,6 +203,7 @@ class Simulation:
                     if not self.auto_control:
                         heading = self.agent.orientation
                         f = self.agent.kick_force
+                        fw = self.agent.kick_torque
                         if 'w' in self._held_keys:
                             self.agent.apply_force(
                                 f * np.cos(heading) * self.dt,
@@ -202,9 +215,9 @@ class Simulation:
                                 -f * np.sin(heading) * self.dt,
                             )
                         if 'a' in self._held_keys:
-                            self.agent.apply_torque(-_HOLD_TORQUE * self.dt)
+                            self.agent.apply_torque(- fw * self.dt)
                         if 'd' in self._held_keys:
-                            self.agent.apply_torque(_HOLD_TORQUE * self.dt)
+                            self.agent.apply_torque(fw * self.dt)
                     self.agent.update(self.dt)
                     self._agent_tick += 1
 
@@ -237,6 +250,26 @@ class Simulation:
                 self.tracker.update(camera_float, self.agent,
                                     sensor_data=sensor_data)
 
+                # ---- Occupancy-map update (orientation mode) -----------
+                ranges = self.agent._depth_profile
+                if ranges is not None:
+                    pos    = self.agent.position
+                    sensor = self.agent.range_sensor
+                    mode   = self.occ_orientation_mode
+                    if mode == 'precise':
+                        self.occupancy.update(
+                            ranges, pos, self.agent.orientation, sensor)
+                    elif mode == 'noisy':
+                        self.occupancy.update_noisy_orientation(
+                            ranges, pos,
+                            self.motion_model.orientation,
+                            ori_std=0.15,
+                            sensor=sensor,
+                        )
+                    else:  # 'unknown'
+                        self.occupancy.update_unknown_orientation(
+                            ranges, pos, sensor)
+
                 # ---- Auto policy ---------------------------------------
                 if self.auto_control and self._policy is not None and not self.paused:
                     result = self._policy(self.agent, self.tracker)
@@ -251,6 +284,7 @@ class Simulation:
                         camera_float=camera_float,
                         paused=self.paused,
                         odom_mode=self.motion_model.mode,
+                        occupancy=self.occupancy,
                     )
                     self._rr.log_trajectories(
                         self.motion_model.gt_trajectory,

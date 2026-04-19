@@ -25,15 +25,16 @@ class RerunViz:
 
         blueprint = rrb.Blueprint(
             rrb.Vertical(
-                # Top row: world overview + camera view + depth curve
+                # Top row: world overview + occupancy grid + camera view + depth curve
                 rrb.Horizontal(
-                    rrb.Spatial2DView(name='World State', origin='world/state'),
+                    rrb.Spatial2DView(name='World State',    origin='world/state'),
+                    rrb.Spatial2DView(name='Occupancy Grid', origin='world/occupancy'),
                     rrb.Vertical(
                         rrb.Spatial2DView(name='Camera + Features', origin='agent/camera'),
                         rrb.Spatial2DView(name='Depth Curve',       origin='agent/depth_curve'),
                         row_shares=[2, 1],
                     ),
-                    column_shares=[1, 1],
+                    column_shares=[1, 1, 1],
                 ),
                 # Middle row: agent metrics
                 rrb.Horizontal(
@@ -81,7 +82,8 @@ class RerunViz:
     def log_frame(self, world_time: int, world, agent, model,
                   camera_float: np.ndarray | None = None,
                   paused: bool = False,
-                  odom_mode: str = 'simple'):
+                  odom_mode: str = 'simple',
+                  occupancy=None):
         """Log one simulation frame to Rerun.
 
         Args:
@@ -92,6 +94,7 @@ class RerunViz:
             camera_float: Precomputed float32 (H, W) depth image, or None to
                           call agent.perceive() internally.
             paused:       Whether the simulation is paused.
+            occupancy:    Optional OccupancyGridModel instance.
         """
         rr.reset_time()
         rr.set_time('step', sequence=world_time)
@@ -100,6 +103,8 @@ class RerunViz:
         self._log_camera(agent, camera_float)
         self._log_depth_curve(agent)
         self._log_debug(world, agent, paused, odom_mode)
+        if occupancy is not None:
+            self._log_occupancy(occupancy, agent)
 
     def log_metrics(self, agent_tick: int, agent):
         """Log agent metrics on a faster physics timeline."""
@@ -261,8 +266,26 @@ class RerunViz:
             colors=[(255, 200, 50)],
         ))
 
+    def _log_occupancy(self, occupancy, agent) -> None:
+        """Log the occupancy probability grid as a grayscale image.
+
+        Convention: bright = free (p → 0), mid-grey = unknown (p = 0.5),
+        dark = occupied (p → 1).  The agent position is overlaid.
+        The grid has its own resolution / origin independent of the CA world.
+        """
+        prob = occupancy.probability           # (H, W) float32 in [0, 1]
+        grey = ((1.0 - prob) * 255).astype(np.uint8)
+        rgb  = np.stack([grey, grey, grey], axis=2)
+        rr.log('world/occupancy', rr.Image(rgb))
+
+        # Agent position in map-cell coordinates
+        ax = (agent.position[0] - occupancy.origin_wx) / occupancy.resolution
+        ay = (agent.position[1] - occupancy.origin_wy) / occupancy.resolution
+        rr.log('world/occupancy/agent', rr.Points2D(
+            [[ax, ay]], colors=[(255, 80, 80)], radii=[1.0],
+        ))
+
     def _log_metrics(self, agent):
-        """Position, speed, and orientation time series."""
         vx, vy = agent.velocity
         speed  = float(np.hypot(vx, vy))
         rr.log('metrics/pos_x',       rr.Scalars([agent.position[0]]))

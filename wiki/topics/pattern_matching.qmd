@@ -1,0 +1,69 @@
+## Pattern Matching in Noisy Sequences
+
+Finding a subpattern within a noisy sequence is a classic problem that bridges the gap between discrete computer science and continuous signal processing. When shifting from a simple string matching algorithm (like KMP) to optimization and statistical correlation, we encounter several robust mathematical frameworks.
+
+### The Mathematical Framework: Cross-Correlation
+
+The most fundamental mathematical tool for finding a pattern $P$ of length $m$ within a sequence $S$ of length $n$ is **Cross-Correlation**.
+
+In a discrete, noiseless environment, the match occurs where the correlation is maximized. Given a sequence $S[i]$ and a pattern $P[j]$, the cross-correlation $R$ at displacement $k$ is defined as:
+
+$$
+(S \ast P)[k] = \sum_{j=0}^{m-1} S[k+j] \cdot P[j]
+$$
+
+#### The "Noise" Problem
+
+When noise is present, simple multiplication fails because the magnitude of the signal can bias the results. To fix this, we use the **Normalized Cross-Correlation (NCC)**, which is invariant to linear changes in brightness/amplitude:
+
+$$
+\gamma(k) = \frac{\sum_{j=0}^{m-1} (S[k+j] - \bar{S}_k)(P[j] - \bar{P})}{\sqrt{\sum_{j=0}^{m-1} (S[k+j] - \bar{S}_k)^2 \sum_{j=0}^{m-1} (P[j] - \bar{P})^2}}
+$$
+
+Where:
+- $\bar{P}$: Mean of the pattern.
+- $\bar{S}_k$: Local mean of the sequence under the pattern window.
+
+The result $\gamma(k)$ ranges from $[-1, 1]$, where $1$ is a perfect match.
+
+### Handling Noise: The Probabilistic Approach
+
+If the noise is stochastic (e.g., Gaussian white noise), the problem is often framed as **Maximum Likelihood Estimation (MLE)**.
+
+We assume the observed sequence $S$ is the pattern $P$ plus some noise $\eta$:
+
+$$
+S[k+j] = P[j] + \eta[j]
+$$
+
+If $\eta \sim \mathcal{N}(0, \sigma^2)$, finding the pattern is equivalent to minimizing the **Sum of Squared Differences (SSD)**:
+
+$$
+SSD(k) = \sum_{j=0}^{m-1} (S[k+j] - P[j])^2
+$$
+
+### Algorithmic Solutions
+
+#### Fast Fourier Transform (FFT) - The Efficient Way
+
+Calculating cross-correlation in the time domain is $O(n \cdot m)$. By using the **Convolution Theorem**, we can solve this in $O(n \log n)$ by moving to the frequency domain:
+
+1. Compute the FFT of $S$ and the zero-padded (and reversed) $P$.
+2. Multiply them point-wise: $F(S) \cdot F(P)^\ast$.
+3. Compute the Inverse FFT (IFFT) to find the correlation peaks.
+
+#### Dynamic Time Warping (DTW) - The Elastic Way
+
+If the noise includes temporal distortion (the pattern is stretched or compressed), correlation will fail. DTW finds the optimal non-linear alignment between two sequences.
+
+- **Cost Function**: $\delta(i, j) = |S[i] - P[j]|$
+- **Recurrence**: $D(i, j) = \delta(i, j) + \min(D(i-1, j), D(i, j-1), D(i-1, j-1))$
+
+### Summary Table for Decision Making
+
+| Case | Suggested Method | Mathematical Basis |
+| :--- | :--- | :--- |
+| **Noiseless / Exact** | KMP / Boyer-Moore | String Automata |
+| **Additive Noise** | Normalized Cross-Correlation | Cauchy-Schwarz Inequality |
+| **Varying Speed/Timing** | Dynamic Time Warping | Dynamic Programming |
+| **Statistical Patterns** | Hidden Markov Models (HMM) | Bayesian Inference |

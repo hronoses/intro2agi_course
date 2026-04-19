@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 
 .old/
-
+wiki/wiki_files
 # C extensions
 *.so
 

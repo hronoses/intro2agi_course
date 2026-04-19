@@ -1,0 +1,84 @@
+## 2D Visual Odometry
+
+Visual Odometry (VO) is the process of estimating the ego-motion of an agent (e.g., a robot or camera) using only visual input. In a strictly 2D environment, the state of the agent is defined by its 2D translation and 1D rotation (heading).
+
+A standard feature-based VO pipeline in 2D consists of three main steps: feature extraction, feature matching, and motion estimation.
+
+### Feature Extraction
+
+To track movement, we first need to identify distinct, repeatable points (features) in the environment. Commonly used features are corners or blobs.
+
+A classical approach is the **Harris Corner Detector**, which finds regions with large intensity gradients in all directions. The structure tensor $M$ for a window is defined as:
+
+$$
+M = \sum_{(x,y) \in W} w(x,y) \begin{bmatrix} I_x^2 & I_x I_y \\ I_x I_y & I_y^2 \end{bmatrix}
+$$
+
+Where $I_x$ and $I_y$ are image derivatives. A corner is detected if both eigenvalues of $M$ are large.
+
+### Feature Matching
+
+Once features are extracted in the current frame ($F_t$) and the previous frame ($F_{t-1}$), we must establish correspondences.
+
+For each feature descriptor in $F_{t-1}$, we search for the closest matching descriptor in $F_t$. This is typically done by minimizing the **Sum of Squared Differences (SSD)** or maximizing **Normalized Cross-Correlation (NCC)** over a patch of pixels surrounding the feature:
+
+$$
+SSD = \sum (I_t(x') - I_{t-1}(x))^2
+$$
+
+Correspondences are usually filtered using techniques like the **Ratio Test** or **RANSAC** to remove outliers (mismatches).
+
+### Motion Estimation (Rotation and Translation)
+
+Given a set of $N$ matched point pairs $P = \{p_1, p_2, ..., p_N\}$ from $F_{t-1}$ and $Q = \{q_1, q_2, ..., q_N\}$ from $F_t$, we want to find the 2D rigid transformation (rotation $R$ and translation $t$) that aligns them.
+
+The 2D transformation equation is:
+
+$$
+q_i = R(\theta) p_i + t
+$$
+
+Where $R(\theta) = \begin{bmatrix} \cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \end{bmatrix}$ and $t = \begin{bmatrix} t_x \\ t_y \end{bmatrix}$.
+
+We frame this as a **Least Squares Optimization** to minimize the re-projection error:
+
+$$
+E(R(\theta), t) = \sum_{i=1}^N ||q_i - (R(\theta) p_i + t)||^2
+$$
+
+#### Closed-form Solution (Procrustes Analysis)
+
+**Step A: Compute Centroids**
+Find the center of mass for both point clouds:
+$$
+\bar{p} = \frac{1}{N} \sum p_i, \quad \bar{q} = \frac{1}{N} \sum q_i
+$$
+
+**Step B: Center the Points**
+Subtract the centroids to remove the translation component:
+$$
+p_i' = p_i - \bar{p}, \quad q_i' = q_i - \bar{q}
+$$
+
+**Step C: Calculate Rotation**
+Construct the cross-covariance matrix $H$:
+$$
+H = \sum_{i=1}^N p_i' (q_i')^T
+$$
+Perform Singular Value Decomposition (SVD) on $H$:
+$$
+H = U S V^T
+$$
+The optimal rotation matrix $R$ is given by:
+$$
+R = V U^T
+$$
+*(Note: To ensure $R$ is a valid rotation matrix without reflection, check $\det(R)$. If it is $-1$, multiply the last column of $V$ by $-1$.)*
+
+**Step D: Calculate Translation**
+Once the rotation is known, the translation is simply the shift between the centroids:
+$$
+t = \bar{q} - R \bar{p}
+$$
+
+This $R$ and $t$ describe the ego-motion of the agent between the two consecutive frames.

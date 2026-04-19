@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.27">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>AI / ML / Robotics Cheat Sheets</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="wiki_files/libs/clipboard/clipboard.min.js"></script>
+<script src="wiki_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="wiki_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="wiki_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="wiki_files/libs/quarto-html/popper.min.js"></script>
+<script src="wiki_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="wiki_files/libs/quarto-html/anchor.min.js"></script>
+<link href="wiki_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="wiki_files/libs/quarto-html/quarto-syntax-highlighting-8b4baf804e461d9b72633f0de59a0cac.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="wiki_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="wiki_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="wiki_files/libs/bootstrap/bootstrap-06d01532e0d5d73dc7e12ad13ad316e8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  
+  <script>
+    (function () {
+      var script = document.createElement("script");
+      script.type = "text/javascript";
+      script.src  = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js";
+      document.getElementsByTagName("head")[0].appendChild(script);
+    })();
+  </script>
+
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview"><span class="header-section-number">1</span> Overview</a></li>
+  <li><a href="#topics" id="toc-topics" class="nav-link" data-scroll-target="#topics"><span class="header-section-number">2</span> Topics</a>
+  <ul class="collapse">
+  <li><a href="#pattern-matching-in-noisy-sequences" id="toc-pattern-matching-in-noisy-sequences" class="nav-link" data-scroll-target="#pattern-matching-in-noisy-sequences"><span class="header-section-number">2.1</span> Pattern Matching in Noisy Sequences</a></li>
+  <li><a href="#d-visual-odometry" id="toc-d-visual-odometry" class="nav-link" data-scroll-target="#d-visual-odometry"><span class="header-section-number">2.2</span> 2D Visual Odometry</a></li>
+  </ul></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">AI / ML / Robotics Cheat Sheets</h1>
+<p class="subtitle lead">Short mathematical notes</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="overview" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Overview</h1>
+<p>This wiki collects short cheat sheets on core topics in robotics, machine learning, and AI. Each topic is maintained in a separate <code>.qmd</code> file and included here.</p>
+</section>
+<section id="topics" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Topics</h1>
+<section id="pattern-matching-in-noisy-sequences" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="pattern-matching-in-noisy-sequences"><span class="header-section-number">2.1</span> Pattern Matching in Noisy Sequences</h2>
+<p>Finding a subpattern within a noisy sequence is a classic problem that bridges the gap between discrete computer science and continuous signal processing. When shifting from a simple string matching algorithm (like KMP) to optimization and statistical correlation, we encounter several robust mathematical frameworks.</p>
+<section id="the-mathematical-framework-cross-correlation" class="level3" data-number="2.1.1">
+<h3 data-number="2.1.1" class="anchored" data-anchor-id="the-mathematical-framework-cross-correlation"><span class="header-section-number">2.1.1</span> The Mathematical Framework: Cross-Correlation</h3>
+<p>The most fundamental mathematical tool for finding a pattern <span class="math inline">\(P\)</span> of length <span class="math inline">\(m\)</span> within a sequence <span class="math inline">\(S\)</span> of length <span class="math inline">\(n\)</span> is <strong>Cross-Correlation</strong>.</p>
+<p>In a discrete, noiseless environment, the match occurs where the correlation is maximized. Given a sequence <span class="math inline">\(S[i]\)</span> and a pattern <span class="math inline">\(P[j]\)</span>, the cross-correlation <span class="math inline">\(R\)</span> at displacement <span class="math inline">\(k\)</span> is defined as:</p>
+<p><span class="math display">\[
+(S \ast P)[k] = \sum_{j=0}^{m-1} S[k+j] \cdot P[j]
+\]</span></p>
+<section id="the-noise-problem" class="level4" data-number="2.1.1.1">
+<h4 data-number="2.1.1.1" class="anchored" data-anchor-id="the-noise-problem"><span class="header-section-number">2.1.1.1</span> The “Noise” Problem</h4>
+<p>When noise is present, simple multiplication fails because the magnitude of the signal can bias the results. To fix this, we use the <strong>Normalized Cross-Correlation (NCC)</strong>, which is invariant to linear changes in brightness/amplitude:</p>
+<p><span class="math display">\[
+\gamma(k) = \frac{\sum_{j=0}^{m-1} (S[k+j] - \bar{S}_k)(P[j] - \bar{P})}{\sqrt{\sum_{j=0}^{m-1} (S[k+j] - \bar{S}_k)^2 \sum_{j=0}^{m-1} (P[j] - \bar{P})^2}}
+\]</span></p>
+<p>Where: - <span class="math inline">\(\bar{P}\)</span>: Mean of the pattern. - <span class="math inline">\(\bar{S}_k\)</span>: Local mean of the sequence under the pattern window.</p>
+<p>The result <span class="math inline">\(\gamma(k)\)</span> ranges from <span class="math inline">\([-1, 1]\)</span>, where <span class="math inline">\(1\)</span> is a perfect match.</p>
+</section>
+</section>
+<section id="handling-noise-the-probabilistic-approach" class="level3" data-number="2.1.2">
+<h3 data-number="2.1.2" class="anchored" data-anchor-id="handling-noise-the-probabilistic-approach"><span class="header-section-number">2.1.2</span> Handling Noise: The Probabilistic Approach</h3>
+<p>If the noise is stochastic (e.g., Gaussian white noise), the problem is often framed as <strong>Maximum Likelihood Estimation (MLE)</strong>.</p>
+<p>We assume the observed sequence <span class="math inline">\(S\)</span> is the pattern <span class="math inline">\(P\)</span> plus some noise <span class="math inline">\(\eta\)</span>:</p>
+<p><span class="math display">\[
+S[k+j] = P[j] + \eta[j]
+\]</span></p>
+<p>If <span class="math inline">\(\eta \sim \mathcal{N}(0, \sigma^2)\)</span>, finding the pattern is equivalent to minimizing the <strong>Sum of Squared Differences (SSD)</strong>:</p>
+<p><span class="math display">\[
+SSD(k) = \sum_{j=0}^{m-1} (S[k+j] - P[j])^2
+\]</span></p>
+</section>
+<section id="algorithmic-solutions" class="level3" data-number="2.1.3">
+<h3 data-number="2.1.3" class="anchored" data-anchor-id="algorithmic-solutions"><span class="header-section-number">2.1.3</span> Algorithmic Solutions</h3>
+<section id="fast-fourier-transform-fft---the-efficient-way" class="level4" data-number="2.1.3.1">
+<h4 data-number="2.1.3.1" class="anchored" data-anchor-id="fast-fourier-transform-fft---the-efficient-way"><span class="header-section-number">2.1.3.1</span> Fast Fourier Transform (FFT) - The Efficient Way</h4>
+<p>Calculating cross-correlation in the time domain is <span class="math inline">\(O(n \cdot m)\)</span>. By using the <strong>Convolution Theorem</strong>, we can solve this in <span class="math inline">\(O(n \log n)\)</span> by moving to the frequency domain:</p>
+<ol type="1">
+<li>Compute the FFT of <span class="math inline">\(S\)</span> and the zero-padded (and reversed) <span class="math inline">\(P\)</span>.</li>
+<li>Multiply them point-wise: <span class="math inline">\(F(S) \cdot F(P)^\ast\)</span>.</li>
+<li>Compute the Inverse FFT (IFFT) to find the correlation peaks.</li>
+</ol>
+</section>
+<section id="dynamic-time-warping-dtw---the-elastic-way" class="level4" data-number="2.1.3.2">
+<h4 data-number="2.1.3.2" class="anchored" data-anchor-id="dynamic-time-warping-dtw---the-elastic-way"><span class="header-section-number">2.1.3.2</span> Dynamic Time Warping (DTW) - The Elastic Way</h4>
+<p>If the noise includes temporal distortion (the pattern is stretched or compressed), correlation will fail. DTW finds the optimal non-linear alignment between two sequences.</p>
+<ul>
+<li><strong>Cost Function</strong>: <span class="math inline">\(\delta(i, j) = |S[i] - P[j]|\)</span></li>
+<li><strong>Recurrence</strong>: <span class="math inline">\(D(i, j) = \delta(i, j) + \min(D(i-1, j), D(i, j-1), D(i-1, j-1))\)</span></li>
+</ul>
+</section>
+</section>
+<section id="summary-table-for-decision-making" class="level3" data-number="2.1.4">
+<h3 data-number="2.1.4" class="anchored" data-anchor-id="summary-table-for-decision-making"><span class="header-section-number">2.1.4</span> Summary Table for Decision Making</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Case</th>
+<th style="text-align: left;">Suggested Method</th>
+<th style="text-align: left;">Mathematical Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>Noiseless / Exact</strong></td>
+<td style="text-align: left;">KMP / Boyer-Moore</td>
+<td style="text-align: left;">String Automata</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Additive Noise</strong></td>
+<td style="text-align: left;">Normalized Cross-Correlation</td>
+<td style="text-align: left;">Cauchy-Schwarz Inequality</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>Varying Speed/Timing</strong></td>
+<td style="text-align: left;">Dynamic Time Warping</td>
+<td style="text-align: left;">Dynamic Programming</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Statistical Patterns</strong></td>
+<td style="text-align: left;">Hidden Markov Models (HMM)</td>
+<td style="text-align: left;">Bayesian Inference</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="d-visual-odometry" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="d-visual-odometry"><span class="header-section-number">2.2</span> 2D Visual Odometry</h2>
+<p>Visual Odometry (VO) is the process of estimating the ego-motion of an agent (e.g., a robot or camera) using only visual input. In a strictly 2D environment, the state of the agent is defined by its 2D translation and 1D rotation (heading).</p>
+<p>A standard feature-based VO pipeline in 2D consists of three main steps: feature extraction, feature matching, and motion estimation.</p>
+<section id="feature-extraction" class="level3" data-number="2.2.1">
+<h3 data-number="2.2.1" class="anchored" data-anchor-id="feature-extraction"><span class="header-section-number">2.2.1</span> Feature Extraction</h3>
+<p>To track movement, we first need to identify distinct, repeatable points (features) in the environment. Commonly used features are corners or blobs.</p>
+<p>A classical approach is the <strong>Harris Corner Detector</strong>, which finds regions with large intensity gradients in all directions. The structure tensor <span class="math inline">\(M\)</span> for a window is defined as:</p>
+<p><span class="math display">\[
+M = \sum_{(x,y) \in W} w(x,y) \begin{bmatrix} I_x^2 &amp; I_x I_y \\ I_x I_y &amp; I_y^2 \end{bmatrix}
+\]</span></p>
+<p>Where <span class="math inline">\(I_x\)</span> and <span class="math inline">\(I_y\)</span> are image derivatives. A corner is detected if both eigenvalues of <span class="math inline">\(M\)</span> are large.</p>
+</section>
+<section id="feature-matching" class="level3" data-number="2.2.2">
+<h3 data-number="2.2.2" class="anchored" data-anchor-id="feature-matching"><span class="header-section-number">2.2.2</span> Feature Matching</h3>
+<p>Once features are extracted in the current frame (<span class="math inline">\(F_t\)</span>) and the previous frame (<span class="math inline">\(F_{t-1}\)</span>), we must establish correspondences.</p>
+<p>For each feature descriptor in <span class="math inline">\(F_{t-1}\)</span>, we search for the closest matching descriptor in <span class="math inline">\(F_t\)</span>. This is typically done by minimizing the <strong>Sum of Squared Differences (SSD)</strong> or maximizing <strong>Normalized Cross-Correlation (NCC)</strong> over a patch of pixels surrounding the feature:</p>
+<p><span class="math display">\[
+SSD = \sum (I_t(x') - I_{t-1}(x))^2
+\]</span></p>
+<p>Correspondences are usually filtered using techniques like the <strong>Ratio Test</strong> or <strong>RANSAC</strong> to remove outliers (mismatches).</p>
+</section>
+<section id="motion-estimation-rotation-and-translation" class="level3" data-number="2.2.3">
+<h3 data-number="2.2.3" class="anchored" data-anchor-id="motion-estimation-rotation-and-translation"><span class="header-section-number">2.2.3</span> Motion Estimation (Rotation and Translation)</h3>
+<p>Given a set of <span class="math inline">\(N\)</span> matched point pairs <span class="math inline">\(P = \{p_1, p_2, ..., p_N\}\)</span> from <span class="math inline">\(F_{t-1}\)</span> and <span class="math inline">\(Q = \{q_1, q_2, ..., q_N\}\)</span> from <span class="math inline">\(F_t\)</span>, we want to find the 2D rigid transformation (rotation <span class="math inline">\(R\)</span> and translation <span class="math inline">\(t\)</span>) that aligns them.</p>
+<p>The 2D transformation equation is:</p>
+<p><span class="math display">\[
+q_i = R(\theta) p_i + t
+\]</span></p>
+<p>Where <span class="math inline">\(R(\theta) = \begin{bmatrix} \cos\theta &amp; -\sin\theta \\ \sin\theta &amp; \cos\theta \end{bmatrix}\)</span> and <span class="math inline">\(t = \begin{bmatrix} t_x \\ t_y \end{bmatrix}\)</span>.</p>
+<p>We frame this as a <strong>Least Squares Optimization</strong> to minimize the re-projection error:</p>
+<p><span class="math display">\[
+E(R(\theta), t) = \sum_{i=1}^N ||q_i - (R(\theta) p_i + t)||^2
+\]</span></p>
+<section id="closed-form-solution-procrustes-analysis" class="level4" data-number="2.2.3.1">
+<h4 data-number="2.2.3.1" class="anchored" data-anchor-id="closed-form-solution-procrustes-analysis"><span class="header-section-number">2.2.3.1</span> Closed-form Solution (Procrustes Analysis)</h4>
+<p><strong>Step A: Compute Centroids</strong> Find the center of mass for both point clouds: <span class="math display">\[
+\bar{p} = \frac{1}{N} \sum p_i, \quad \bar{q} = \frac{1}{N} \sum q_i
+\]</span></p>
+<p><strong>Step B: Center the Points</strong> Subtract the centroids to remove the translation component: <span class="math display">\[
+p_i' = p_i - \bar{p}, \quad q_i' = q_i - \bar{q}
+\]</span></p>
+<p><strong>Step C: Calculate Rotation</strong> Construct the cross-covariance matrix <span class="math inline">\(H\)</span>: <span class="math display">\[
+H = \sum_{i=1}^N p_i' (q_i')^T
+\]</span> Perform Singular Value Decomposition (SVD) on <span class="math inline">\(H\)</span>: <span class="math display">\[
+H = U S V^T
+\]</span> The optimal rotation matrix <span class="math inline">\(R\)</span> is given by: <span class="math display">\[
+R = V U^T
+\]</span> <em>(Note: To ensure <span class="math inline">\(R\)</span> is a valid rotation matrix without reflection, check <span class="math inline">\(\det(R)\)</span>. If it is <span class="math inline">\(-1\)</span>, multiply the last column of <span class="math inline">\(V\)</span> by <span class="math inline">\(-1\)</span>.)</em></p>
+<p><strong>Step D: Calculate Translation</strong> Once the rotation is known, the translation is simply the shift between the centroids: <span class="math display">\[
+t = \bar{q} - R \bar{p}
+\]</span></p>
+<p>This <span class="math inline">\(R\)</span> and <span class="math inline">\(t\)</span> describe the ego-motion of the agent between the two consecutive frames.</p>
+
+</section>
+</section>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

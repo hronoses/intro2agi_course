@@ -1,0 +1,25 @@
+---
+title: "AI / ML / Robotics Cheat Sheets"
+subtitle: "Short mathematical notes"
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    theme: cosmo
+    highlight-style: github
+    embed-resources: true
+    math: katex
+lang: en
+---
+
+# Overview
+
+This wiki collects short cheat sheets on core topics in robotics, machine learning, and AI.
+Each topic is maintained in a separate `.qmd` file and included here.
+
+# Topics
+
+{{< include topics/pattern_matching.qmd >}}
+{{< include topics/visual_odometry_2d.qmd >}}
+
